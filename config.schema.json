@@ -1,0 +1,16 @@
+{
+  "pluginAlias": "HormannGarageDoor",
+  "pluginType": "accessory",
+  "singular": false,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "required": true,
+        "default": "Garage Door"
+      }
+    }
+  }
+}
