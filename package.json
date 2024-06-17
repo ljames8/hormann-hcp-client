@@ -1,0 +1,43 @@
+{
+  "name": "homebridge-hormann-garagedoor",
+  "displayName": "Hörmann Garage Door",
+  "version": "1.0.0",
+  "description": "DIY Hormann Supramatic E3 garage door connection to Apple HomeKit",
+  "main": "dist/garagedoor.js",
+  "scripts": {
+    "lint": "eslint --max-warnings=0",
+    "clean": "rimraf dist",
+    "build": "npm run clean && tsc",
+    "prepublishOnly": "npm run lint && npm run build",
+    "postpublish": "npm run clean",
+    "watch": "npm run build && npm link && nodemon",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "homebridge-plugin",
+    "homebridge",
+    "rs485",
+    "hormann",
+    "garage"
+  ],
+  "author": "Leo James",
+  "license": "ISC",
+  "engines": {
+    "node": ">=18.20.3",
+    "homebridge": ">=1.8.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.5.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "globals": "^15.6.0",
+    "homebridge": "^1.8.2",
+    "prettier": "3.3.2",
+    "rimraf": "^5.0.7",
+    "typescript-eslint": "^7.13.0"
+  },
+  "dependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}
