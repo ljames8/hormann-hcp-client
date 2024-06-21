@@ -11,7 +11,7 @@
     "prepublishOnly": "npm run lint && npm run build",
     "postpublish": "npm run clean",
     "watch": "npm run build && npm link && nodemon",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "keywords": [
     "homebridge-plugin",
@@ -28,15 +28,19 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.5.0",
+    "@types/jest": "^29.5.12",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "globals": "^15.6.0",
     "homebridge": "^1.8.2",
+    "jest": "^29.7.0",
     "prettier": "3.3.2",
     "rimraf": "^5.0.7",
+    "ts-jest": "^29.1.5",
     "typescript-eslint": "^7.13.0"
   },
   "dependencies": {
+    "crc-full": "^1.1.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   }
