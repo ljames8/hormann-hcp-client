@@ -6,7 +6,10 @@
     "esModuleInterop": true,
     // "skipLibCheck": true,
     "outDir": "dist",
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "@src/*": ["src/*"]
+    }
   },
   "include": ["src"]
 }
