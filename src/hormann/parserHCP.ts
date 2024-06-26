@@ -79,6 +79,10 @@ export class HCPPacket extends Uint8Array {
     return true;
   }
 
+  public equals(other: Uint8Array | number[]): boolean {
+    return this.length === other.length && this.every((value, index) => value === other[index]);
+  }
+
   public computeCRC(): number {
     debug("computeCRC length %d", this.length);
     debug("computeCRC subarray %h", this.subarray(0, this.length - 1));

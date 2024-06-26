@@ -72,11 +72,17 @@ describe("HCPPacket base", () => {
 
 describe("HCPPacket properties", () => {
   const p = HCPPacket.fromBuffer(Buffer.from("80f329001008", "hex"));
+
   test("single byte fields should be good", () => {
     expect(p.address).toBe(0x80);
     expect(p.crc).toBe(0x08);
     expect(p.lengthNibble).toBe(0x03);
     expect(p.counterNibble).toBe(0x0f);
+  })
+
+  test("header and payload should be good", () => {
+    expect(p.header.equals([0x80, 0xf3])).toBe(true);
+    expect(p.payload.equals([0x29, 0x00, 0x10, 0x08])).toBe(true);
   })
 })
 
