@@ -9,7 +9,6 @@ Debug.formatters.h = (v: number[] | Buffer) => {
   return Buffer.from(v).toString("hex");
 };
 Debug.formatters.x = formatByte;
-const debug = Debug("hcp");
 
 const PACKET_OVERHEAD = 3;
 const MAX_PACKET_LENGTH = 15 + PACKET_OVERHEAD;
@@ -84,10 +83,6 @@ export class HCPPacket extends Uint8Array {
   }
 
   public computeCRC(): number {
-    debug("computeCRC length %d", this.length);
-    debug("computeCRC subarray %h", this.subarray(0, this.length - 1));
-    debug("computeCRC array %h", this);
-    debug("computeCRC array %h", this.subarray(3, 5));
     return computeCRC8(this.subarray(0, this.length - 1));
   }
 
