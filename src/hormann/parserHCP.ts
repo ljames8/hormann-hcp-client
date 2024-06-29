@@ -1,3 +1,4 @@
+import { Transform, TransformCallback } from "stream";
 import Debug from "debug";
 import { computeCRC8 } from "./utils";
 
@@ -9,6 +10,7 @@ Debug.formatters.h = (v: number[] | Buffer) => {
   return Buffer.from(v).toString("hex");
 };
 Debug.formatters.x = formatByte;
+const debug = Debug("hcp");
 
 const PACKET_OVERHEAD = 3;
 const MAX_PACKET_LENGTH = 15 + PACKET_OVERHEAD;
@@ -125,3 +127,90 @@ export class HCPPacket extends Uint8Array {
   }
 }
 
+export class HCPPacketParser extends Transform {
+  buffer: Buffer;
+  started: boolean;
+  offset!: number;
+  packetLength!: number;
+
+  constructor() {
+    super({ objectMode: true });
+
+    this.buffer = Buffer.alloc(MAX_PACKET_LENGTH);
+    this.started = false;
+    this._resetPacket();
+  }
+
+  _resetPacket() {
+    // offset when several chunks are needed to get a full packet
+    this.offset = -1;
+    // total packetLength computed from LENGTH byte
+    this.packetLength = 0;
+    this.buffer.fill(0);
+  }
+
+  _parseCurrentByte(byte: number): boolean {
+    switch(this.offset) {
+    case PKT_HEADER.ADDRESS:
+      // TODO: limit the possibilites for 1st byte ?
+      debug("address %x", byte);
+      break;
+    case PKT_HEADER.LENGTH:
+      // parse packet length and message counter values
+      this.packetLength = (byte & 0x0f) + PACKET_OVERHEAD;
+      debug(
+        "parsed packet length %d ((%x & 0x0f) + %d)",
+        this.packetLength,
+        byte,
+        PACKET_OVERHEAD,
+      );
+      break;
+      // const message_counter = (byte & 0xf0) >> 4;
+    case this.packetLength - 1: {
+      // packet complete
+      const packetCRC = computeCRC8(this.buffer.subarray(0, this.offset));
+      debug("packet complete: %h CRC %x", this.buffer.subarray(0, this.offset + 1), packetCRC);
+      if (packetCRC == byte) {
+        // packet valid
+        this.push(HCPPacket.fromBuffer(this.buffer.subarray(0, this.offset + 1), false));
+      } else {
+        debug("CRC error, expected %x", byte);
+      }
+      return false;
+    }
+    case MAX_PACKET_LENGTH:
+      // TODO: to delete, cannot happen?
+      // packet too long, restart packet
+      debug("packet too long, restart packet");
+      return false;
+    default:
+      debug("processed byte %x", byte);
+    }
+    return true;
+  }
+
+  _transform(chunk: Buffer, encoding: BufferEncoding, cb: TransformCallback) {
+    /**
+     * Parses legit HCP packets from a stream of bytes
+     * Pushes HCPPacket instances
+     */
+    debug("reading chunk: %h", chunk);
+    for (const byte of chunk) {
+      // TODO: if (chunk.length > 5) do sthg ?
+      if (this.started === false) {
+        // TODO: additional condition to restart packet?
+        this._resetPacket();
+        this.started = true;
+      }
+      if (this.started === true) {
+        this.offset++;
+        this.buffer[this.offset] = byte;
+        debug("offset", this.offset);
+        this.started = this._parseCurrentByte(byte);
+        // TODO: migh as well break than restart a packet on next byte if false ?
+      }
+    }
+
+    cb();
+  }
+}

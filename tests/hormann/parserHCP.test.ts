@@ -1,4 +1,4 @@
-import { HCPPacket } from "@src/hormann/parserHCP";
+import { HCPPacket, HCPPacketParser } from "@src/hormann/parserHCP";
 
 describe("HCPPacket base", () => {
   it("should parse a valid packet buffer", () => {
@@ -85,4 +85,17 @@ describe("HCPPacket properties", () => {
     expect(p.payload.equals([0x29, 0x00, 0x10, 0x08])).toBe(true);
   })
 })
+
+describe("HCPPacketParser test", () => {
+  it("should parse a single packet chunk", () => {
+    const parser = new HCPPacketParser();
+    const chunks: HCPPacket[] = [];
+    const packetHex = "80f329001008";
+    parser.on('data', (chunk) => {console.log(typeof chunk); chunks.push(chunk)});
+    parser.write(Buffer.from(packetHex, "hex"));
+    parser.end();
+    expect(chunks.length).toBe(1);
+    expect(chunks[0].hex()).toBe(packetHex);
+  })
+});
 

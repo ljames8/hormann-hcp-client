@@ -20,7 +20,7 @@
     }
   },
   "lint-staged": {
-    "*.ts": "eslint --max-warnings=0"
+    "*.ts": "npm run lint"
   },
   "keywords": [
     "homebridge-plugin",
@@ -52,6 +52,7 @@
   },
   "dependencies": {
     "crc-full": "^1.1.0",
+    "debug": "^4.3.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   }
