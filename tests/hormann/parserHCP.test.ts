@@ -1,8 +1,25 @@
-import { HCPPacket, HCPPacketParser } from "@src/hormann/parserHCP";
+import { HCPPacket, SimpleHCPPacketParser } from "@src/hormann/parserHCP";
+
+const TEST_PACKET_STR = "80f329001008"
+const TEST_PACKET_BUF = Buffer.from(TEST_PACKET_STR, "hex")
+const TEST_PACKETS = Buffer.from(
+  "000b45453030303437382d30307180121428a78033290010a280632900105e80932900" +
+  "105d80c3290010a180f3290010088023290010c58053290010f780832900103a80b329" +
+  "00109380e32900106f80132900106c80432900109080732900103980a3290010f480d3" +
+  "290010c680032900100b8033290010a280632900105e80932900105d80c3290010a180" +
+  "f3290010088023290010c58053290010f780832900103a80b32900109380e32900106f" +
+  "80132900106c80432900109080732900103980a3290010f480d3290010c68003290010" +
+  "0b8033290010a280632900105e80932900105d80c3290010a180f32900100880232900" +
+  "10c58053290010f780832900103a80b32900109380e32900106f80132900106c804329" +
+  "00109080732900103980a3290010f480d3290010c680032900100b8033290010a28063" +
+  "2900105e80932900105d80c3290010a180f3290010088023290010c58053290010f780" +
+  "832900103a80b32900109380e32900106f80132900106c804329001090807329001039" +
+  "80a3290010f480d3290010c680032900100b8033290010a280632900105e80932900105d", "hex"
+)
 
 describe("HCPPacket base", () => {
   it("should parse a valid packet buffer", () => {
-    const p = HCPPacket.fromBuffer(Buffer.from("80f329001008", "hex"));
+    const p = HCPPacket.fromBuffer(TEST_PACKET_BUF);
     HCPPacket.fromBuffer([0x80, 0xf3, 0x29, 0x00, 0x10, 0x08]);
     HCPPacket.fromBuffer(Uint8Array.from([0x80, 0xf3, 0x29, 0x00, 0x10, 0x08]));
 
@@ -18,7 +35,7 @@ describe("HCPPacket base", () => {
   })
 
   it("should be formatted as hex string", () => {
-    const hexString = "80f329001008"
+    const hexString = TEST_PACKET_STR
     const p = HCPPacket.fromBuffer(Buffer.from(hexString, "hex"));
     expect(p.hex()).toBe(hexString);
   });
@@ -71,7 +88,7 @@ describe("HCPPacket base", () => {
 });
 
 describe("HCPPacket properties", () => {
-  const p = HCPPacket.fromBuffer(Buffer.from("80f329001008", "hex"));
+  const p = HCPPacket.fromBuffer(TEST_PACKET_BUF);
 
   test("single byte fields should be good", () => {
     expect(p.address).toBe(0x80);
@@ -86,16 +103,29 @@ describe("HCPPacket properties", () => {
   })
 })
 
-describe("HCPPacketParser test", () => {
+describe("SimpleHCPPacketParser test", () => {
   it("should parse a single packet chunk", () => {
-    const parser = new HCPPacketParser();
+    const parser = new SimpleHCPPacketParser();
     const chunks: HCPPacket[] = [];
-    const packetHex = "80f329001008";
-    parser.on('data', (chunk) => {console.log(typeof chunk); chunks.push(chunk)});
-    parser.write(Buffer.from(packetHex, "hex"));
+    parser.on('data', (chunk) => {chunks.push(chunk)});
+    parser.write(TEST_PACKET_BUF);
     parser.end();
     expect(chunks.length).toBe(1);
-    expect(chunks[0].hex()).toBe(packetHex);
+    expect(chunks[0].hex()).toBe(TEST_PACKET_STR);
   })
+
+  it("should parse contiguous packets", () => {
+    const parser = new SimpleHCPPacketParser();
+    const chunks: HCPPacket[] = [];
+    const lastPacket = HCPPacket.fromBuffer(Buffer.from("80932900105d", "hex"));
+
+    parser.on("data", (c) => chunks.push(c));
+    parser.on("end", () => {
+      expect(chunks.length).toBe(69);
+      expect(chunks[chunks.length - 1].equals(lastPacket)).toBe(true);
+    });
+    parser.write(TEST_PACKETS);
+    parser.end();
+  });
 });
 

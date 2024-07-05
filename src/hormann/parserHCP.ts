@@ -127,7 +127,12 @@ export class HCPPacket extends Uint8Array {
   }
 }
 
-export class HCPPacketParser extends Transform {
+export class SimpleHCPPacketParser extends Transform {
+  /**
+   * Iterates over read bytes one by one.
+   * Drops all bytes if packet is invalid
+   * So it can miss valid packets in case of glitches
+   */
   buffer: Buffer;
   started: boolean;
   offset!: number;
@@ -150,48 +155,48 @@ export class HCPPacketParser extends Transform {
   }
 
   _parseCurrentByte(byte: number): boolean {
-    switch(this.offset) {
-    case PKT_HEADER.ADDRESS:
-      // TODO: limit the possibilites for 1st byte ?
-      debug("address %x", byte);
-      break;
-    case PKT_HEADER.LENGTH:
-      // parse packet length and message counter values
-      this.packetLength = (byte & 0x0f) + PACKET_OVERHEAD;
-      debug(
-        "parsed packet length %d ((%x & 0x0f) + %d)",
-        this.packetLength,
-        byte,
-        PACKET_OVERHEAD,
-      );
-      break;
+    switch (this.offset) {
+      case PKT_HEADER.ADDRESS:
+        // TODO: limit the possibilites for 1st byte ?
+        debug("address %x", byte);
+        break;
+      case PKT_HEADER.LENGTH:
+        // parse packet length and message counter values
+        this.packetLength = (byte & 0x0f) + PACKET_OVERHEAD;
+        debug(
+          "parsed packet length %d ((%x & 0x0f) + %d)",
+          this.packetLength,
+          byte,
+          PACKET_OVERHEAD,
+        );
+        break;
       // const message_counter = (byte & 0xf0) >> 4;
-    case this.packetLength - 1: {
-      // packet complete
-      const packetCRC = computeCRC8(this.buffer.subarray(0, this.offset));
-      debug("packet complete: %h CRC %x", this.buffer.subarray(0, this.offset + 1), packetCRC);
-      if (packetCRC == byte) {
-        // packet valid
-        this.push(HCPPacket.fromBuffer(this.buffer.subarray(0, this.offset + 1), false));
-      } else {
-        debug("CRC error, expected %x", byte);
+      case this.packetLength - 1: {
+        // packet complete
+        const packetCRC = computeCRC8(this.buffer.subarray(0, this.offset));
+        debug("packet complete: %h CRC %x", this.buffer.subarray(0, this.offset + 1), packetCRC);
+        if (packetCRC == byte) {
+          // packet valid
+          this.push(HCPPacket.fromBuffer(this.buffer.subarray(0, this.offset + 1), false));
+        } else {
+          debug("CRC error, expected %x", byte);
+        }
+        return false;
       }
-      return false;
-    }
-    case MAX_PACKET_LENGTH:
-      // TODO: to delete, cannot happen?
-      // packet too long, restart packet
-      debug("packet too long, restart packet");
-      return false;
-    default:
-      debug("processed byte %x", byte);
+      case MAX_PACKET_LENGTH:
+        // TODO: to delete, cannot happen?
+        // packet too long, restart packet
+        debug("packet too long, restart packet");
+        return false;
+      default:
+        debug("processed byte %x", byte);
     }
     return true;
   }
 
   _transform(chunk: Buffer, encoding: BufferEncoding, cb: TransformCallback) {
     /**
-     * Parses legit HCP packets from a stream of bytes
+     * Parses valid HCP packets from a stream of bytes
      * Pushes HCPPacket instances
      */
     debug("reading chunk: %h", chunk);
