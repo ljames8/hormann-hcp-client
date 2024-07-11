@@ -1,4 +1,4 @@
-import { HCPPacket, SimpleHCPPacketParser } from "@src/hormann/parserHCP";
+import { HCPPacket, SimpleHCPPacketParser, BatchHCPPacketParser } from "@src/hormann/parserHCP";
 
 const TEST_PACKET_STR = "80f329001008"
 const TEST_PACKET_BUF = Buffer.from(TEST_PACKET_STR, "hex")
@@ -18,7 +18,7 @@ const TEST_PACKETS = Buffer.from(
 )
 
 describe("HCPPacket base", () => {
-  it("should parse a valid packet buffer", () => {
+  it("should build a valid packet from buffer", () => {
     const p = HCPPacket.fromBuffer(TEST_PACKET_BUF);
     HCPPacket.fromBuffer([0x80, 0xf3, 0x29, 0x00, 0x10, 0x08]);
     HCPPacket.fromBuffer(Uint8Array.from([0x80, 0xf3, 0x29, 0x00, 0x10, 0x08]));
@@ -127,5 +127,52 @@ describe("SimpleHCPPacketParser test", () => {
     parser.write(TEST_PACKETS);
     parser.end();
   });
+
+  it("is not expected to parse partially corrupted packets", () => {
+    const parser = new SimpleHCPPacketParser();
+    const chunks: HCPPacket[] = [];
+
+    parser.on("data", (c) => chunks.push(c));
+    parser.write(TEST_PACKETS.subarray(1, 17));
+    parser.end();
+    expect(chunks.length).toBe(0);
+  });
 });
 
+
+describe("BatchHCPPacketParser test", () => {
+  it("should parse a single packet chunk", () => {
+    const parser = new BatchHCPPacketParser();
+    const chunks: HCPPacket[] = [];
+    parser.on('data', (chunk) => {chunks.push(chunk)});
+    parser.write(TEST_PACKET_BUF);
+    parser.end();
+    expect(chunks.length).toBe(1);
+    expect(chunks[0].hex()).toBe(TEST_PACKET_STR);
+  })
+
+  it("should parse contiguous packets", () => {
+    const parser = new BatchHCPPacketParser();
+    const chunks: HCPPacket[] = [];
+    const lastPacket = HCPPacket.fromBuffer(Buffer.from("80932900105d", "hex"));
+
+    parser.on("data", (c) => chunks.push(c));
+    parser.write(TEST_PACKETS);
+    parser.end();
+    expect(chunks.length).toBe(69);
+    expect(chunks[chunks.length - 1].equals(lastPacket)).toBe(true);
+  })
+
+  it("should be able to parse partially corrupted packets", () => {
+    const parser = new BatchHCPPacketParser();
+    const chunks: HCPPacket[] = [];
+    const lastPacket = HCPPacket.fromBuffer(Buffer.from("8033290010a2", "hex"));
+
+    parser.on("data", (c) => chunks.push(c));
+    // passing incomplete packet followed by 2 valid packets
+    parser.write(TEST_PACKETS.subarray(1, 25));
+    parser.end();
+    expect(chunks.length).toBe(2);
+    expect(chunks[chunks.length - 1].equals(lastPacket)).toBe(true);
+  });
+});

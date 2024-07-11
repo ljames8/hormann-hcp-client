@@ -219,3 +219,129 @@ export class SimpleHCPPacketParser extends Transform {
     cb();
   }
 }
+
+export class BatchHCPPacketParser extends Transform {
+  /**
+   * Iterates over each chunk of read bytes to find valid packet as early as possible
+   * Might create false positive packets in case of CRC collision
+   */
+
+  buffer: Buffer;
+  offset: number;
+  tested: boolean[];
+  minUntestedIdx: number;
+
+  constructor() {
+    super({ objectMode: true });
+    this.tested = new Array(MAX_PACKET_LENGTH).fill(false);
+    // queue buffer with enough space to hold full packet data for tested array
+    this.buffer = Buffer.alloc(2 * MAX_PACKET_LENGTH - PKT_HEADER.__SIZE).fill(0);
+    this.offset = 0;
+    this.minUntestedIdx = 0;
+  }
+
+  _resetTestedArray(): void {
+    this.tested.fill(false);
+    this.minUntestedIdx = 0;
+  }
+
+  _pop_buffer(nbElements: number): void {
+    this.buffer.copyWithin(0, nbElements);
+    this.offset -= nbElements;
+  }
+
+  _testPacket(offset: number, length: number): boolean {
+    if (length < PACKET_OVERHEAD + 1) {
+      // packet cannot be empty
+      return false;
+    }
+    const testBuffer = this.buffer.subarray(offset, offset + length - 1);
+    const packetCRC = computeCRC8(testBuffer);
+    debug(
+      "computed CRC %x expected CRC %x for buffer %h",
+      packetCRC,
+      this.buffer[offset + length - 1],
+      testBuffer,
+    );
+    return packetCRC == this.buffer[offset + length - 1] ? true : false;
+  }
+
+  _testPacketRange(fromByteIdx: number, untilByteIdx: number): number {
+    const maxTestIdx: number = Math.min(untilByteIdx - PACKET_OVERHEAD - 1, this.tested.length - 1);
+    let parsedLength: number;
+
+    for (let i = fromByteIdx; i <= maxTestIdx; i++) {
+      if (this.tested[i] === true) {
+        // already tested, skip
+        continue;
+      }
+      // check candidate packet starting at byte i
+      parsedLength = (this.buffer[i + PKT_HEADER.LENGTH] & 0x0f) + PACKET_OVERHEAD;
+      debug("packet parsed length %d from byte %d", parsedLength, i);
+      if (i + parsedLength > untilByteIdx) {
+        continue;
+      }
+      // if enough data available test it
+      if (this._testPacket(i, parsedLength) === true) {
+        // push packet and rewind
+        debug("pushing valid packet %h", this.buffer.subarray(i, i + parsedLength));
+        this.push(HCPPacket.fromBuffer(this.buffer.subarray(i, i + parsedLength), false));
+        this._resetTestedArray();
+        return i + parsedLength;
+      } else {
+        this.tested[i] = true;
+        if (i == this.tested.length - 1) {
+          // if reached the end of tested array, clear it and rewind
+          debug("test array complete, rewinding");
+          this._resetTestedArray();
+          return this.tested.length;
+        } else if (i == this.minUntestedIdx) {
+          // increment the marker
+          this.minUntestedIdx++;
+        }
+      }
+    }
+    return 0;
+  }
+
+  _transform(bytes: Buffer, _encoding: BufferEncoding, cb: TransformCallback) {
+    /**
+     * Parses valid HCP packets from a stream of bytes
+     * Pushes HCPPacket instances
+     */
+    debug("reading chunk: %h", bytes);
+    let bytesOffset: number = 0;
+    let remainingBytes: number = bytes.length;
+    let chunkSize: number;
+    let bytesToPop: number;
+    let bkpOffset: number = -1;
+    // while we consume bytes
+    while (bkpOffset != this.offset) {
+      // fill queue
+      debug("minUntestedIdx", this.minUntestedIdx);
+      chunkSize = Math.min(this.buffer.length - this.offset, remainingBytes);
+      if (chunkSize > 0) {
+        this.buffer.fill(
+          bytes.subarray(bytesOffset, bytesOffset + chunkSize),
+          this.offset,
+          this.offset + chunkSize,
+        );
+        this.offset += chunkSize;
+        bytesOffset += chunkSize;
+        remainingBytes = bytes.length - bytesOffset;
+      }
+      debug("buffer", this.buffer);
+      debug("offset %d remaining %d bytes to read", this.offset, remainingBytes);
+      // test candidate packets from minUntestedIdx
+      bytesToPop = this._testPacketRange(this.minUntestedIdx, this.offset);
+      // save backup offset and pop buffers to rewind
+      bkpOffset = this.offset;
+      debug("%d bytes to pop after test, bkpOffset %d", bytesToPop, bkpOffset);
+      if (bytesToPop > 0) {
+        this._pop_buffer(bytesToPop);
+      }
+    }
+
+    cb();
+  }
+}
