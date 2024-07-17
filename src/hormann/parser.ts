@@ -127,23 +127,89 @@ export class HCPPacket extends Uint8Array {
   }
 }
 
-export class SimpleHCPPacketParser extends Transform {
+interface PacketFilterParams {
+  packetTimeout?: number;
+  filterMaxLength?: boolean;
+}
+
+export class PacketFilter extends Transform {
+  /**
+   * Filtering for valid chunks based on timing
+   * and other HCP characteristics
+   */
+  buffer: Buffer;
+  timeout: number;
+  timer: NodeJS.Timeout | null;
+  filterMaxLength: boolean;
+
+  constructor({ packetTimeout = -1, filterMaxLength = false }: PacketFilterParams = {}) {
+    super({ objectMode: true });
+    this.buffer = this._initBuffer();
+    this.timer = null;
+    this.timeout = packetTimeout;
+    this.filterMaxLength = filterMaxLength;
+  }
+
+  _initBuffer(): Buffer {
+    // to override
+    return Buffer.alloc(0);
+  }
+
+  _resetBuffer() {
+    // to override
+    this.buffer = this._initBuffer();
+  }
+
+  _clearTimeout() {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+  }
+
+  _filter(chunk: Buffer): Buffer {
+    // method to preprocess chunk before passing it to _transform
+    if (this.timeout > 0) {
+      this._clearTimeout();
+      this.timer = setTimeout(this._resetBuffer.bind(this), this.timeout);
+    }
+    if (this.filterMaxLength === true && chunk.length > MAX_PACKET_LENGTH) {
+      return chunk.subarray(chunk.length - MAX_PACKET_LENGTH);
+    } else {
+      return chunk;
+    }
+  }
+
+  _transform(chunk: Buffer, encoding: BufferEncoding, callback: TransformCallback) {
+    // default example transform is an accumulator, to override
+    this.buffer = Buffer.concat([this.buffer, this._filter(chunk)]);
+    this.push(this.buffer);
+    callback();
+  }
+}
+
+export class SimpleHCPPacketParser extends PacketFilter {
   /**
    * Iterates over read bytes one by one.
    * Drops all bytes if packet is invalid
    * So it can miss valid packets in case of glitches
    */
-  buffer: Buffer;
   started: boolean;
   offset!: number;
   packetLength!: number;
 
-  constructor() {
-    super({ objectMode: true });
-
-    this.buffer = Buffer.alloc(MAX_PACKET_LENGTH);
+  constructor(options: PacketFilterParams = {}) {
+    super(options);
     this.started = false;
     this._resetPacket();
+  }
+
+  _initBuffer(): Buffer {
+    return Buffer.alloc(MAX_PACKET_LENGTH);
+  }
+
+  _resetBuffer() {
+    return this._resetPacket();
   }
 
   _resetPacket() {
@@ -200,8 +266,8 @@ export class SimpleHCPPacketParser extends Transform {
      * Pushes HCPPacket instances
      */
     debug("reading chunk: %h", chunk);
-    for (const byte of chunk) {
-      // TODO: if (chunk.length > 5) do sthg ?
+    const filteredChunk = this._filter(chunk);
+    for (const byte of filteredChunk) {
       if (this.started === false) {
         // TODO: additional condition to restart packet?
         this._resetPacket();
@@ -220,24 +286,31 @@ export class SimpleHCPPacketParser extends Transform {
   }
 }
 
-export class BatchHCPPacketParser extends Transform {
+export class BatchHCPPacketParser extends PacketFilter {
   /**
    * Iterates over each chunk of read bytes to find valid packet as early as possible
    * Might create false positive packets in case of CRC collision
    */
-
-  buffer: Buffer;
   offset: number;
   tested: boolean[];
   minUntestedIdx: number;
 
-  constructor() {
-    super({ objectMode: true });
+  constructor(options: PacketFilterParams = {}) {
+    super(options);
     this.tested = new Array(MAX_PACKET_LENGTH).fill(false);
     // queue buffer with enough space to hold full packet data for tested array
-    this.buffer = Buffer.alloc(2 * MAX_PACKET_LENGTH - PKT_HEADER.__SIZE).fill(0);
     this.offset = 0;
     this.minUntestedIdx = 0;
+  }
+
+  _initBuffer(): Buffer {
+    return Buffer.alloc(2 * MAX_PACKET_LENGTH - PKT_HEADER.__SIZE).fill(0);
+  }
+
+  _resetBuffer() {
+    this.buffer.fill(0);
+    this.offset = 0;
+    return this._resetTestedArray();
   }
 
   _resetTestedArray(): void {
@@ -310,8 +383,9 @@ export class BatchHCPPacketParser extends Transform {
      * Pushes HCPPacket instances
      */
     debug("reading chunk: %h", bytes);
+    const filtered = this._filter(bytes);
     let bytesOffset: number = 0;
-    let remainingBytes: number = bytes.length;
+    let remainingBytes: number = filtered.length;
     let chunkSize: number;
     let bytesToPop: number;
     let bkpOffset: number = -1;
@@ -322,13 +396,13 @@ export class BatchHCPPacketParser extends Transform {
       chunkSize = Math.min(this.buffer.length - this.offset, remainingBytes);
       if (chunkSize > 0) {
         this.buffer.fill(
-          bytes.subarray(bytesOffset, bytesOffset + chunkSize),
+          filtered.subarray(bytesOffset, bytesOffset + chunkSize),
           this.offset,
           this.offset + chunkSize,
         );
         this.offset += chunkSize;
         bytesOffset += chunkSize;
-        remainingBytes = bytes.length - bytesOffset;
+        remainingBytes = filtered.length - bytesOffset;
       }
       debug("buffer", this.buffer);
       debug("offset %d remaining %d bytes to read", this.offset, remainingBytes);

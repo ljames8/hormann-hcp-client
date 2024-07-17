@@ -1,7 +1,12 @@
-import { HCPPacket, SimpleHCPPacketParser, BatchHCPPacketParser } from "@src/hormann/parser";
+import {
+  HCPPacket,
+  PacketFilter,
+  SimpleHCPPacketParser,
+  BatchHCPPacketParser,
+} from "@src/hormann/parser";
 
-const TEST_PACKET_STR = "80f329001008"
-const TEST_PACKET_BUF = Buffer.from(TEST_PACKET_STR, "hex")
+const TEST_PACKET_STR = "80f329001008";
+const TEST_PACKET_BUF = Buffer.from(TEST_PACKET_STR, "hex");
 const TEST_PACKETS = Buffer.from(
   "000b45453030303437382d30307180121428a78033290010a280632900105e80932900" +
   "105d80c3290010a180f3290010088023290010c58053290010f780832900103a80b329" +
@@ -14,8 +19,9 @@ const TEST_PACKETS = Buffer.from(
   "00109080732900103980a3290010f480d3290010c680032900100b8033290010a28063" +
   "2900105e80932900105d80c3290010a180f3290010088023290010c58053290010f780" +
   "832900103a80b32900109380e32900106f80132900106c804329001090807329001039" +
-  "80a3290010f480d3290010c680032900100b8033290010a280632900105e80932900105d", "hex"
-)
+  "80a3290010f480d3290010c680032900100b8033290010a280632900105e80932900105d",
+  "hex",
+);
 
 describe("HCPPacket base", () => {
   it("should build a valid packet from buffer", () => {
@@ -30,12 +36,12 @@ describe("HCPPacket base", () => {
     const p = HCPPacket.fromData(...[0x00, 5, [0x00, 0x01]]);
     expect(p.isValid()).toBe(true);
     expect(p.hex()).toBe("00520001cc");
-    // supplying crc from data should not be that useful but supported 
+    // supplying crc from data should not be that useful but supported
     expect(HCPPacket.fromData(...[0x00, 5, [0x00, 0x01], 0xcc]).isValid()).toBe(true);
-  })
+  });
 
   it("should be formatted as hex string", () => {
-    const hexString = TEST_PACKET_STR
+    const hexString = TEST_PACKET_STR;
     const p = HCPPacket.fromBuffer(Buffer.from(hexString, "hex"));
     expect(p.hex()).toBe(hexString);
   });
@@ -59,12 +65,12 @@ describe("HCPPacket base", () => {
     expect(() => {
       HCPPacket.fromBuffer([0x00, 0x00, 0x00, 0xd1]);
     }).toThrow("Invalid total length (got 3 expected 4)");
-  })
+  });
 
   it("should not throw any error if not validating packet", () => {
     const p = HCPPacket.fromBuffer([0x00, 0x00, 0x00, 0x00], false);
     expect(p.isValid()).toBe(false);
-  })
+  });
 
   it("should throw errors if data is not valid", () => {
     expect(() => {
@@ -79,12 +85,12 @@ describe("HCPPacket base", () => {
     expect(() => {
       HCPPacket.fromData(...[0x00, 1, new Uint8Array(16)]);
     }).toThrow("HCPPacket cannot be longer than 18 bytes");
-  })
+  });
 
   it("should not throw any error if not validating crc", () => {
     const p = HCPPacket.fromData(...[0x00, 14, [0x00], 0x00], false);
     expect(p.isValid()).toBe(false);
-  })
+  });
 });
 
 describe("HCPPacket properties", () => {
@@ -95,24 +101,26 @@ describe("HCPPacket properties", () => {
     expect(p.crc).toBe(0x08);
     expect(p.lengthNibble).toBe(0x03);
     expect(p.counterNibble).toBe(0x0f);
-  })
+  });
 
   test("header and payload should be good", () => {
     expect(p.header.equals([0x80, 0xf3])).toBe(true);
     expect(p.payload.equals([0x29, 0x00, 0x10, 0x08])).toBe(true);
-  })
-})
+  });
+});
 
 describe("SimpleHCPPacketParser test", () => {
   it("should parse a single packet chunk", () => {
     const parser = new SimpleHCPPacketParser();
     const chunks: HCPPacket[] = [];
-    parser.on('data', (chunk) => {chunks.push(chunk)});
+    parser.on("data", (chunk) => {
+      chunks.push(chunk);
+    });
     parser.write(TEST_PACKET_BUF);
     parser.end();
     expect(chunks.length).toBe(1);
     expect(chunks[0].hex()).toBe(TEST_PACKET_STR);
-  })
+  });
 
   it("should parse contiguous packets", () => {
     const parser = new SimpleHCPPacketParser();
@@ -139,17 +147,47 @@ describe("SimpleHCPPacketParser test", () => {
   });
 });
 
+describe("PacketFilter test", () => {
+  test('should respect max length filter', () => {
+    const longChunk = Buffer.from('12345678901234567890'); // Length is 20
+    const packetFilter = new PacketFilter({ filterMaxLength: true });
+    packetFilter._transform(longChunk, 'utf-8', () => {
+      const transformedChunk = packetFilter.read();
+      expect(transformedChunk.length).toBe(18);  // MAX_PACKET_LENGTH
+      expect(transformedChunk.toString()).toBe('345678901234567890');
+    });
+  });
+
+  test("should reset buffer after timeout", async () => {
+    const packetFilter = new PacketFilter({ packetTimeout: 20 }); // 50ms timeout
+    const chunk = Buffer.from("deadbeef", "hex");
+    const chunks: Buffer[] = [];
+    packetFilter.on("data", (c) => chunks.push(c));
+    packetFilter.write(chunk);
+    await new Promise(resolve => setTimeout(resolve, 10));
+    packetFilter.write(chunk); // accumulate buffer if not timedout
+    await new Promise(resolve => setTimeout(resolve, 30));
+    packetFilter.write(chunk); // reset buffer if not timedout
+    packetFilter.end();
+    expect(chunks.length).toBe(3);
+    expect(chunks[0].equals(chunk)).toBe(true);
+    expect(chunks[1].equals(Buffer.concat([chunk, chunk]))).toBe(true);
+    expect(chunks[0].equals(chunk)).toBe(true);
+  }); 
+});
 
 describe("BatchHCPPacketParser test", () => {
   it("should parse a single packet chunk", () => {
     const parser = new BatchHCPPacketParser();
     const chunks: HCPPacket[] = [];
-    parser.on('data', (chunk) => {chunks.push(chunk)});
+    parser.on("data", (chunk) => {
+      chunks.push(chunk);
+    });
     parser.write(TEST_PACKET_BUF);
     parser.end();
     expect(chunks.length).toBe(1);
     expect(chunks[0].hex()).toBe(TEST_PACKET_STR);
-  })
+  });
 
   it("should parse contiguous packets", () => {
     const parser = new BatchHCPPacketParser();
@@ -161,7 +199,7 @@ describe("BatchHCPPacketParser test", () => {
     parser.end();
     expect(chunks.length).toBe(69);
     expect(chunks[chunks.length - 1].equals(lastPacket)).toBe(true);
-  })
+  });
 
   it("should be able to parse partially corrupted packets", () => {
     const parser = new BatchHCPPacketParser();
