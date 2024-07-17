@@ -4,6 +4,7 @@ import {
   SimpleHCPPacketParser,
   BatchHCPPacketParser,
 } from "@src/hormann/parser";
+import { IntervalReadable } from "@tests/lib/mockup";
 
 const TEST_PACKET_STR = "80f329001008";
 const TEST_PACKET_BUF = Buffer.from(TEST_PACKET_STR, "hex");
@@ -22,6 +23,23 @@ const TEST_PACKETS = Buffer.from(
   "80a3290010f480d3290010c680032900100b8033290010a280632900105e80932900105d",
   "hex",
 );
+const TEST_PACKET_HEX_LIST = [
+  '000b45453030303437382d303071', '80121428a7', '8033290010a2', '80632900105e',
+  '80932900105d', '80c3290010a1', '80f329001008', '8023290010c5', '8053290010f7',
+  '80832900103a', '80b329001093', '80e32900106f', '80132900106c', '804329001090',
+  '807329001039', '80a3290010f4', '80d3290010c6', '80032900100b', '8033290010a2',
+  '80632900105e', '80932900105d', '80c3290010a1', '80f329001008', '8023290010c5',
+  '8053290010f7', '80832900103a', '80b329001093', '80e32900106f', '80132900106c',
+  '804329001090', '807329001039', '80a3290010f4', '80d3290010c6', '80032900100b',
+  '8033290010a2', '80632900105e', '80932900105d', '80c3290010a1', '80f329001008',
+  '8023290010c5', '8053290010f7', '80832900103a', '80b329001093', '80e32900106f',
+  '80132900106c', '804329001090', '807329001039', '80a3290010f4', '80d3290010c6',
+  '80032900100b', '8033290010a2', '80632900105e', '80932900105d', '80c3290010a1',
+  '80f329001008', '8023290010c5', '8053290010f7', '80832900103a', '80b329001093',
+  '80e32900106f', '80132900106c', '804329001090', '807329001039', '80a3290010f4',
+  '80d3290010c6', '80032900100b', '8033290010a2', '80632900105e', '80932900105d'
+];
+const TEST_PACKET_LIST = TEST_PACKET_HEX_LIST.map((c) => Buffer.from(c, 'hex'));
 
 describe("HCPPacket base", () => {
   it("should build a valid packet from buffer", () => {
@@ -214,3 +232,33 @@ describe("BatchHCPPacketParser test", () => {
     expect(chunks[chunks.length - 1].equals(lastPacket)).toBe(true);
   });
 });
+
+describe("Real time packet parsing tests", () => {
+  test.each(
+    [SimpleHCPPacketParser, BatchHCPPacketParser]
+  )("simpler parser handles a real time stream of valid packets", (parserClass, done) => {
+    // Create a mockup stream emitting packets every 10ms by chunks of size 6
+    // that's actually quicker than the hardware to save time
+    const readable = new IntervalReadable({ interval: 10, chunkSize: 6 });
+    const chunks: HCPPacket[] = [];
+    // packetTimeout must be < packet interval
+    const parser = new parserClass({ packetTimeout: 5 });
+    parser.on("data", (chunk) => {
+      chunks.push(chunk);
+    });
+    // prepend some corrupted packet of same size. it should be discarded after timeout
+    readable.write(Buffer.from("deadbeef", "hex"));
+    readable.put(TEST_PACKET_LIST);
+    readable.end();
+    parser.on("finish", () => {
+      try {
+        expect(chunks.length).toBe(69);
+        done();
+      } catch (error) {
+        console.log(parserClass);
+        done(error);
+      }
+    });
+    readable.pipe(parser);
+  }, 1000);
+})
