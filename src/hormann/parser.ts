@@ -1,14 +1,12 @@
 import { Transform, TransformCallback } from "stream";
 import Debug from "debug";
-import { computeCRC8 } from "./utils";
+import { hex, computeCRC8 } from "./utils";
 
 function formatByte(byte: number): string {
   return "0x" + byte.toString(16).padStart(2, "0");
 }
 
-Debug.formatters.h = (v: number[] | Buffer) => {
-  return Buffer.from(v).toString("hex");
-};
+Debug.formatters.h = hex;
 Debug.formatters.x = formatByte;
 const debug = Debug("hcp");
 
@@ -97,7 +95,7 @@ export class HCPPacket extends Uint8Array {
   }
 
   public hex(): string {
-    return Buffer.from(this.buffer, this.byteOffset, this.byteLength).toString("hex");
+    return hex(this);
   }
 
   static fromData(
