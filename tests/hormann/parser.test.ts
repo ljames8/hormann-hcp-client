@@ -123,7 +123,7 @@ describe("HCPPacket properties", () => {
 
   test("header and payload should be good", () => {
     expect(p.header.equals([0x80, 0xf3])).toBe(true);
-    expect(p.payload.equals([0x29, 0x00, 0x10, 0x08])).toBe(true);
+    expect(p.payload.equals([0x29, 0x00, 0x10])).toBe(true);
   });
 });
 

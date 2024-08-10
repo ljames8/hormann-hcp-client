@@ -51,7 +51,7 @@ export class HCPPacket extends Uint8Array {
   }
 
   get payload(): Uint8Array {
-    return this.subarray(PKT_HEADER.__SIZE);
+    return this.subarray(PKT_HEADER.__SIZE, -1);
   }
 
   get crc(): number {
