@@ -43,7 +43,8 @@ export class HCPPacket extends Uint8Array {
   }
 
   get counterNibble(): number {
-    return (this[PKT_HEADER.LENGTH] & 0xf0) >> 4;
+    // for a uint8 (x & 0xf0) >> 4 equiv to x >> 4
+    return this[PKT_HEADER.LENGTH] >> 4;
   }
 
   get header(): Uint8Array {
