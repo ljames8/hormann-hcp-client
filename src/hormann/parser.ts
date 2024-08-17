@@ -8,7 +8,7 @@ function formatByte(byte: number): string {
 
 Debug.formatters.h = hex;
 Debug.formatters.x = formatByte;
-const debug = Debug("hcp");
+const debug = Debug("hcp:parser");
 
 const PACKET_OVERHEAD = 3;
 const MAX_PACKET_LENGTH = 15 + PACKET_OVERHEAD;
@@ -303,7 +303,7 @@ export class BatchHCPPacketParser extends PacketFilter {
   }
 
   _initBuffer(): Buffer {
-    return Buffer.alloc(2 * MAX_PACKET_LENGTH - PKT_HEADER.__SIZE).fill(0);
+    return Buffer.alloc(2 * MAX_PACKET_LENGTH - 1).fill(0);
   }
 
   _resetBuffer() {
@@ -335,7 +335,7 @@ export class BatchHCPPacketParser extends PacketFilter {
       this.buffer[offset + length - 1],
       testBuffer,
     );
-    return packetCRC == this.buffer[offset + length - 1] ? true : false;
+    return packetCRC == this.buffer[offset + length - 1];
   }
 
   _testPacketRange(fromByteIdx: number, untilByteIdx: number): number {
