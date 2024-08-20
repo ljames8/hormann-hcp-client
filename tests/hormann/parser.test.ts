@@ -176,6 +176,34 @@ describe("PacketFilter test", () => {
     });
   });
 
+  test("should discard sync breaks", () => {
+    // warning straightforward first 0x00 byte removal
+    // will not work if the sync breaks are intermittent
+    const chunk0 = Buffer.from("01deadbeef", "hex");
+    const chunk1 = Buffer.from("00deadbeef", "hex");
+    const packetFilter = new PacketFilter({ filterBreaks: true });
+    packetFilter._transform(chunk0, "", () => {
+      const transformedChunk = packetFilter.read();
+      expect(transformedChunk.toString("hex")).toBe("01deadbeef");
+    });
+    packetFilter._transform(chunk1, "", () => {
+      const transformedChunk = packetFilter.read();
+      // default transform accumulates all what was read
+      expect(transformedChunk.toString("hex")).toBe("01deadbeefdeadbeef");
+    });
+  });
+
+  test("filterMaxLength has precedence over filterBreaks", () => {
+    // Length is 20
+    const longChunk = Buffer.from("00123456789012345678aabbccddeeff00112233", "hex");
+    const packetFilter = new PacketFilter({ filterMaxLength: true, filterBreaks: true });
+    packetFilter._transform(longChunk, "", () => {
+      const transformedChunk = packetFilter.read();
+      expect(transformedChunk.length).toBe(18); // MAX_PACKET_LENGTH
+      expect(transformedChunk.toString("hex")).toBe("3456789012345678aabbccddeeff00112233");
+    });
+  });
+
   test("should reset buffer after timeout", async () => {
     const packetFilter = new PacketFilter({ packetTimeout: 20 }); // 50ms timeout
     const chunk = Buffer.from("deadbeef", "hex");

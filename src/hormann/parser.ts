@@ -17,6 +17,7 @@ enum PKT_HEADER {
   LENGTH,
   __SIZE,
 }
+const SYNC_BREAK = 0x00;
 
 export class HCPPacket extends Uint8Array {
   // do not override constructor as it's overloaded and used by some methods (subarray)
@@ -129,6 +130,7 @@ export class HCPPacket extends Uint8Array {
 interface PacketFilterParams {
   packetTimeout?: number;
   filterMaxLength?: boolean;
+  filterBreaks?: boolean;
 }
 
 export class PacketFilter extends Transform {
@@ -140,13 +142,19 @@ export class PacketFilter extends Transform {
   timeout: number;
   timer: NodeJS.Timeout | null;
   filterMaxLength: boolean;
+  filterBreaks: boolean;
 
-  constructor({ packetTimeout = -1, filterMaxLength = false }: PacketFilterParams = {}) {
+  constructor({
+    packetTimeout = -1,
+    filterMaxLength = false,
+    filterBreaks = false,
+  }: PacketFilterParams = {}) {
     super({ objectMode: true });
     this.buffer = this._initBuffer();
     this.timer = null;
     this.timeout = packetTimeout;
     this.filterMaxLength = filterMaxLength;
+    this.filterBreaks = filterBreaks;
   }
 
   _initBuffer(): Buffer {
@@ -173,7 +181,11 @@ export class PacketFilter extends Transform {
       this.timer = setTimeout(this._resetBuffer.bind(this), this.timeout);
     }
     if (this.filterMaxLength === true && chunk.length > MAX_PACKET_LENGTH) {
+      // keep the last MAX_PACKET_LENGTH bytes from the big chunk
       return chunk.subarray(chunk.length - MAX_PACKET_LENGTH);
+    } else if (this.filterBreaks === true && chunk[0] == SYNC_BREAK && chunk.length > 1) {
+      // discard first 0x00 byte
+      return chunk.subarray(1);
     } else {
       return chunk;
     }
