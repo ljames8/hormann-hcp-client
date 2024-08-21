@@ -1,6 +1,6 @@
 import { Transform, TransformCallback } from "stream";
 import Debug from "debug";
-import { hex, computeCRC8 } from "./utils";
+import { arraysEqual, hex, computeCRC8 } from "./utils";
 
 function formatByte(byte: number): string {
   return "0x" + byte.toString(16).padStart(2, "0");
@@ -81,7 +81,7 @@ export class HCPPacket extends Uint8Array {
   }
 
   public equals(other: Uint8Array | number[]): boolean {
-    return this.length === other.length && this.every((value, index) => value === other[index]);
+    return arraysEqual(this, other);
   }
 
   public computeCRC(): number {

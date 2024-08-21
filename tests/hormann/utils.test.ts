@@ -1,4 +1,18 @@
-import { hex, computeCRC8 } from "@src/hormann/utils";
+import { arraysEqual, hex, computeCRC8 } from "@src/hormann/utils";
+
+describe("arraysEqual", () => {
+  it("should return true for equal arrays", () => {
+    expect(arraysEqual([1, 2, 3], [1, 2, 3])).toBe(true);
+    expect(arraysEqual(new Uint8Array(), [])).toBe(true);
+    expect(arraysEqual(new Uint8Array(2), [0, 0])).toBe(true);
+  })
+
+  it("should return false for inequal arrays", () => {
+    expect(arraysEqual([1, 3], [3, 1])).toBe(false);
+    expect(arraysEqual([], [3, 1])).toBe(false);
+    expect(arraysEqual([0], new Uint8Array())).toBe(false);
+  })
+})
 
 describe("hex", () => {
   it("should return empty string when empty argument", () => {

@@ -4,6 +4,7 @@ import {
   SimpleHCPPacketParser,
   BatchHCPPacketParser,
 } from "@src/hormann/parser";
+import { arraysEqual } from "@src/hormann/utils";
 import { IntervalReadable } from "@tests/lib/mockup";
 
 const TEST_PACKET_STR = "80f329001008";
@@ -122,8 +123,8 @@ describe("HCPPacket properties", () => {
   });
 
   test("header and payload should be good", () => {
-    expect(p.header.equals([0x80, 0xf3])).toBe(true);
-    expect(p.payload.equals([0x29, 0x00, 0x10])).toBe(true);
+    expect(arraysEqual(p.header, [0x80, 0xf3])).toBe(true);
+    expect(arraysEqual(p.payload, [0x29, 0x00, 0x10])).toBe(true);
   });
 });
 

@@ -1,5 +1,9 @@
 import { CRC } from "crc-full";
 
+export function arraysEqual(a: Uint8Array | number[], b: Uint8Array | number[]): boolean {
+  return a.length === b.length && a.every((value, index) => value === b[index]);
+}
+
 export function hex(v: number[] | Buffer | Uint8Array) {
   return Buffer.from(v).toString("hex");
 } 
