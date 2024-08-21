@@ -183,11 +183,11 @@ describe("PacketFilter test", () => {
     const chunk0 = Buffer.from("01deadbeef", "hex");
     const chunk1 = Buffer.from("00deadbeef", "hex");
     const packetFilter = new PacketFilter({ filterBreaks: true });
-    packetFilter._transform(chunk0, "", () => {
+    packetFilter._transform(chunk0, "hex", () => {
       const transformedChunk = packetFilter.read();
       expect(transformedChunk.toString("hex")).toBe("01deadbeef");
     });
-    packetFilter._transform(chunk1, "", () => {
+    packetFilter._transform(chunk1, "hex", () => {
       const transformedChunk = packetFilter.read();
       // default transform accumulates all what was read
       expect(transformedChunk.toString("hex")).toBe("01deadbeefdeadbeef");
@@ -198,7 +198,7 @@ describe("PacketFilter test", () => {
     // Length is 20
     const longChunk = Buffer.from("00123456789012345678aabbccddeeff00112233", "hex");
     const packetFilter = new PacketFilter({ filterMaxLength: true, filterBreaks: true });
-    packetFilter._transform(longChunk, "", () => {
+    packetFilter._transform(longChunk, "hex", () => {
       const transformedChunk = packetFilter.read();
       expect(transformedChunk.length).toBe(18); // MAX_PACKET_LENGTH
       expect(transformedChunk.toString("hex")).toBe("3456789012345678aabbccddeeff00112233");

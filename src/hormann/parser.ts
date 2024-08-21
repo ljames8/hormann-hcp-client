@@ -103,7 +103,7 @@ export class HCPPacket extends Uint8Array {
   static fromData(
     addressByte: number,
     counterNibble: number,
-    payload: number[] | Buffer,
+    payload: number[] | Buffer | Uint8Array,
     crc?: number,
     validate: boolean = crc === undefined ? false : true,
   ): HCPPacket {
