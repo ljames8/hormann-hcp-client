@@ -206,7 +206,7 @@ describe("PacketFilter test", () => {
   });
 
   test("should reset buffer after timeout", async () => {
-    const packetFilter = new PacketFilter({ packetTimeout: 20 }); // 50ms timeout
+    const packetFilter = new PacketFilter({ packetTimeout: 20 }); // 20ms timeout
     const chunk = Buffer.from("deadbeef", "hex");
     const chunks: Buffer[] = [];
     packetFilter.on("data", (c) => chunks.push(c));
