@@ -127,7 +127,7 @@ export class HCPPacket extends Uint8Array {
   }
 }
 
-interface PacketFilterParams {
+export interface PacketFilterParams {
   packetTimeout?: number;
   filterMaxLength?: boolean;
   filterBreaks?: boolean;
