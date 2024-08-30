@@ -1,4 +1,4 @@
-import { arraysEqual, hex, computeCRC8 } from "@src/hormann/utils";
+import { arraysEqual, hex, computeCRC8 } from "@src/utils";
 
 describe("arraysEqual", () => {
   it("should return true for equal arrays", () => {

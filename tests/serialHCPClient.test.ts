@@ -6,11 +6,11 @@ import {
   BROADCAST_STATUS_BYTE0_BITFIELD,
   DEFAULT_BAUDRATE,
   STATUS_RESPONSE_BYTE0_BITFIELD,
-} from "@src/hormann/serialHCPClient";
-import { HCPPacket } from "@src/hormann/parser";
+} from "@src/serialHCPClient";
+import { HCPPacket } from "@src/parser";
 import { afterEach, describe } from "node:test";
 import { IntervalReadable } from "@tests/lib/mockup";
-import { arraysEqual } from "@src/hormann/utils";
+import { arraysEqual } from "@src/utils";
 
 // ref: https://stackoverflow.com/a/74957308/12544140
 jest.mock("serialport", () => {

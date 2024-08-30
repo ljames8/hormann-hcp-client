@@ -3,8 +3,8 @@ import {
   PacketFilter,
   SimpleHCPPacketParser,
   BatchHCPPacketParser,
-} from "@src/hormann/parser";
-import { arraysEqual } from "@src/hormann/utils";
+} from "@src/parser";
+import { arraysEqual } from "@src/utils";
 import { IntervalReadable } from "@tests/lib/mockup";
 
 const TEST_PACKET_STR = "80f329001008";
