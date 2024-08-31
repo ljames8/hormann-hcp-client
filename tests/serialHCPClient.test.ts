@@ -131,6 +131,7 @@ describe("SerialHCPClient low-level", () => {
     it("should ignore packet not addressed to slave", () => {
       // testing with another destination address 0xaa
       const anotherPkt = HCPPacket.fromBuffer(Buffer.from("aad12051", "hex"));
+      client.nextMessageCounter = 0xd;
       const response = client.processMessage(anotherPkt);
       // default slave status response is [SLAVE_STATUS_RESPONSE, 0x00, 0x10];
       expect(response).toBe(null);
@@ -156,6 +157,28 @@ describe("SerialHCPClient low-level", () => {
       const response2 = client.processMessage(pkt2);
       expect(response2?.counter).toEqual(1);
       expect(client.nextMessageCounter).toEqual(2);
+    });
+
+    it("should sync message counter on broadcast", () => {
+      client.nextMessageCounter = -1;
+      // test with the 3 kinds of message
+      // pk1: broadcast will cause counter force sync
+      // pk2: another address, message ignored but counter incremented
+      // pk3: slave address with incremented counter
+      const pkt1 = HCPPacket.fromBuffer(Buffer.from("00820e023c", "hex"));
+      const pkt2 = HCPPacket.fromBuffer(Buffer.from("aa91200a", "hex"));
+      const pkt3 = HCPPacket.fromBuffer(Buffer.from("28a1202e", "hex"));
+      let response = client.processMessage(pkt1);
+      expect(response).toBe(null);
+      expect(client.nextMessageCounter).toEqual(9);
+      response = client.processMessage(pkt2);
+      expect(response).toBe(null);
+      expect(client.nextMessageCounter).toEqual(10);
+      response = client.processMessage(pkt3);
+      expect(response).not.toBe(null);
+      // response increments the counter
+      expect(response!.counter).toEqual(11);
+      expect(client.nextMessageCounter).toEqual(12);
     });
 
     it("slave scan response should have default callbacks", (done) => {

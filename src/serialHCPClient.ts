@@ -173,41 +173,41 @@ export class SerialHCPClient extends EventEmitter {
 
   processMessage(packet: HCPPacket): ResponsePayload | null {
     const nextCounter = SerialHCPClient.getNextCounter(packet.counterNibble);
+
+    if (packet.counterNibble != this.nextMessageCounter) {
+      if (packet.address == ADDRESS.BROADCAST) {
+        // only warn and force sync next counter
+        debug(
+          "warning: syncing broadcast counter, " +
+            `got ${packet.counterNibble} expected ${this.nextMessageCounter}`,
+        );
+      } else {
+        // error for incorrect counter for other cases
+        throw new Error(
+          `Invalid message counter, got ${packet.counterNibble} ` +
+            `expected ${this.nextMessageCounter}`,
+        );
+      }
+    }
+    this.nextMessageCounter = nextCounter;
+
     switch (packet.address) {
       case ADDRESS.BROADCAST: {
-        // only warn and sync next counter
-        if (packet.counterNibble != this.nextMessageCounter) {
-          debug(
-            "warning: syncing broadcast counter, " +
-              `got ${packet.counterNibble} expected ${this.nextMessageCounter}`,
-          );
-        }
-        this.nextMessageCounter = nextCounter;
-
         this.emit("data", SerialHCPClient.unpackBroadcast(packet));
         break;
       }
       case ADDRESS.SLAVE: {
-        // raise error if message length is not valid
-        if (packet.counterNibble != this.nextMessageCounter) {
-          // Error for incorrect counter in this case
-          throw new Error(
-            `Invalid message counter, got ${packet.counterNibble} ` +
-              `expected ${this.nextMessageCounter}`,
-          );
-        } else {
-          this.nextMessageCounter = nextCounter;
-          const response = this.processSlaveCommand(packet);
-          // set response counter
-          if (response.counter === undefined) response.counter = this.nextMessageCounter;
-          // increment counter again for next message to be read
-          this.nextMessageCounter = SerialHCPClient.getNextCounter(response.counter);
-          if (response.reject === undefined)
-            response.reject = (reason) => {
-              throw new Error(reason);
-            };
-          return response;
-        }
+        this.nextMessageCounter = nextCounter;
+        const response = this.processSlaveCommand(packet);
+        // set response counter
+        if (response.counter === undefined) response.counter = this.nextMessageCounter;
+        // increment counter again for next message to be read
+        this.nextMessageCounter = SerialHCPClient.getNextCounter(response.counter);
+        if (response.reject === undefined)
+          response.reject = (reason) => {
+            throw new Error(reason);
+          };
+        return response;
       }
       default:
       // ignoring message
