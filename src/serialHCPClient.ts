@@ -9,6 +9,7 @@ const debug = Debug("hcp:client");
 const trace = Debug("serial");
 
 export const DEFAULT_BAUDRATE = 19200;
+const MIN_RESPONSE_DELAY_MS = 3;
 
 const UAP1_ADDR = 0x28;
 const UAP1_TYPE = 0x14;
@@ -104,6 +105,7 @@ export class SerialHCPClient extends EventEmitter {
 
   private onNewPacket(packet: HCPPacket) {
     // new HCP packet was read and parsed from serial port
+    const timestamp = Date.now();
     let response: ResponsePayload | null = null;
     try {
       response = this.processMessage(packet);
@@ -112,7 +114,8 @@ export class SerialHCPClient extends EventEmitter {
     }
     if (response !== null) {
       const packet = HCPPacket.fromData(ADDRESS.MASTER, response.counter!, response.payload);
-      this.sendPacket(packet)
+      debug("responding with", packet);
+      this.sendPacket(packet, MIN_RESPONSE_DELAY_MS - Date.now() + timestamp)
         .then(() => {
           response.resolve(packet);
         })
@@ -157,6 +160,7 @@ export class SerialHCPClient extends EventEmitter {
 
   async sendPacket(packet: HCPPacket, delay?: number): Promise<void> {
     if (delay !== undefined && delay > 0) {
+      debug(`sleeping for ${delay}ms before sending`);
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
 
