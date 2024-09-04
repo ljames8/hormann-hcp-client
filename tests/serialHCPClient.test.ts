@@ -337,9 +337,9 @@ describe("SerialHCPClient high-level", () => {
         expect(pkt.equals(HCPPacket.fromBuffer(Buffer.from("80921428ac", "hex")))).toBe(true);
         expect(arraysEqual(broadcastStatus, [0x0d, 0x02])).toBe(true);
         done();
-      } catch(error) {
+      } catch (error) {
         done(error);
       }
-    })
+    });
   });
 });
