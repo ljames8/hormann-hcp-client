@@ -204,6 +204,22 @@ describe("SerialHCPClient low-level", () => {
     });
   });
 
+  describe("Sync break", () => {
+    // didn't find much apart from checking the break duration
+    it("should perform a sync break for the right duration", (done) => {
+      MockBinding.createPort(serialPath, { echo: false, record: false });
+      const client = new SerialHCPClient({ path: serialPath, baudRate: DEFAULT_BAUDRATE });
+      client.once("open", () => {
+        const start = performance.now();
+        client.sendBreak(100, () => {
+          const execTime = performance.now() - start;
+          expect(execTime).toBeGreaterThan(100);
+          done();
+        });
+      });
+    });
+  });
+
   describe("Sending commands", () => {
     MockBinding.createPort(serialPath, { echo: false, record: true });
     const client = new SerialHCPClient({ path: serialPath, baudRate: DEFAULT_BAUDRATE });
