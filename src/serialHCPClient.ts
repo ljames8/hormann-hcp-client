@@ -156,10 +156,12 @@ export class SerialHCPClient extends EventEmitter {
     return (counter + 1) % 16;
   }
 
+  open(): void {
+    if (!this.port.isOpen) return this.port.open();
+  }
+
   close() {
-    if (this.port.isOpen) {
-      this.port.close();
-    }
+    if (this.port.isOpen) return this.port.close();
   }
 
   sendBreak(delay: number, callback: () => void): void {

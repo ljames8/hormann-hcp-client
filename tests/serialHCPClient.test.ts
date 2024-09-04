@@ -244,13 +244,19 @@ describe("SerialHCPClient high-level", () => {
 
   it("should fire 'close' when closing client", (done) => {
     MockBinding.createPort(serialPath, { echo: false, record: false });
-    const client = new SerialHCPClient({ path: serialPath, baudRate: DEFAULT_BAUDRATE });
+    const client = new SerialHCPClient({
+      path: serialPath,
+      baudRate: DEFAULT_BAUDRATE,
+      autoOpen: false,
+    });
 
     client.once("close", () => {
       expect(client.port.isOpen).toBe(false);
       done();
     });
     client.once("open", client.close);
+    expect(client.port.isOpen).toBe(false); // autoOpen is false
+    client.open();
   });
 
   it.each([0x0d, 0xaa])(
