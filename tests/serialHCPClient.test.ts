@@ -235,11 +235,10 @@ describe("SerialHCPClient low-level", () => {
       it("should send packet with appropriate delay", async () => {
         const buf = Buffer.from("28d1208c", "hex");
         const start = performance.now();
-        return client.sendPacket(HCPPacket.fromBuffer(buf), 100).then(() => {
-          const execTime = performance.now() - start;
-          expect((client.port.port as unknown as MockPortBinding).lastWrite).toEqual(buf);
-          expect(execTime).toBeGreaterThan(100);
-        });
+        await client.sendPacket(HCPPacket.fromBuffer(buf), 100);
+        const execTime = performance.now() - start;
+        expect((client.port.port as unknown as MockPortBinding).lastWrite).toEqual(buf);
+        expect(execTime).toBeGreaterThan(100);
       });
     });
   });
