@@ -6,7 +6,7 @@ import { HCPPacket, BatchHCPPacketParser, PacketFilterParams } from "./parser";
 import { AutoDetectTypes } from "@serialport/bindings-cpp";
 
 const debug = Debug("hcp:client");
-const trace = Debug("serial");
+const trace = Debug("hcp:serial");
 
 export const DEFAULT_BAUDRATE = 19200;
 const MIN_RESPONSE_DELAY_MS = 3;
@@ -114,7 +114,7 @@ export class SerialHCPClient extends EventEmitter {
     }
     if (response !== null) {
       const packet = HCPPacket.fromData(ADDRESS.MASTER, response.counter!, response.payload);
-      debug("responding with", packet);
+      debug("responding with %h", packet);
       this.sendPacket(packet, MIN_RESPONSE_DELAY_MS - Date.now() + timestamp)
         .then(() => {
           response.resolve(packet);
@@ -160,7 +160,7 @@ export class SerialHCPClient extends EventEmitter {
 
   async sendPacket(packet: HCPPacket, delay?: number): Promise<void> {
     if (delay !== undefined && delay > 0) {
-      debug(`sleeping for ${delay}ms before sending`);
+      trace(`sleeping for ${delay}ms before sending`);
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
 
@@ -251,7 +251,7 @@ export class SerialHCPClient extends EventEmitter {
         };
       }
       case COMMAND.SLAVE_STATUS_REQUEST: {
-        debug("received slave status request %h", packet);
+        debug("got slave status request %h", packet);
         // sanity check
         if (payload.length != 1) {
           throw new Error(`Unexpected payload length for slave status request (${payload.length})`);
