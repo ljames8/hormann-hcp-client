@@ -10,6 +10,9 @@ const trace = Debug("hcp:serial");
 
 export const DEFAULT_BAUDRATE = 19200;
 const MIN_RESPONSE_DELAY_MS = 3;
+// LIN message sync break must be at least 13 bits long
+// so 13/19200 ~= 0.68ms
+const SYNC_BREAK_DURATION_MS = (13 * 1000) / DEFAULT_BAUDRATE;
 
 const UAP1_ADDR = 0x28;
 const UAP1_TYPE = 0x14;
@@ -105,7 +108,8 @@ export class SerialHCPClient extends EventEmitter {
 
   private onNewPacket(packet: HCPPacket) {
     // new HCP packet was read and parsed from serial port
-    const timestamp = Date.now();
+    // debug("got packet %h", packet);
+    const timestamp = performance.now();
     let response: ResponsePayload | null = null;
     try {
       response = this.processMessage(packet);
@@ -115,7 +119,7 @@ export class SerialHCPClient extends EventEmitter {
     if (response !== null) {
       const packet = HCPPacket.fromData(ADDRESS.MASTER, response.counter!, response.payload);
       debug("responding with %h", packet);
-      this.sendPacket(packet, MIN_RESPONSE_DELAY_MS - Date.now() + timestamp)
+      this.sendPacket(packet, MIN_RESPONSE_DELAY_MS - performance.now() + timestamp)
         .then(() => {
           response.resolve(packet);
         })
@@ -158,6 +162,25 @@ export class SerialHCPClient extends EventEmitter {
     }
   }
 
+  sendBreak(delay: number, callback: () => void): void {
+    /** Use synchronous code to ensure accurate delay */
+    const start = performance.now();
+    this.port.set({ brk: true }, (error) => {
+      if (error) throw error;
+      const stop = performance.now();
+      if (delay > 0) {
+        const timeout = stop + delay - (stop - start) / 2;
+        while (performance.now() < timeout) {
+          // busy wait
+        }
+      }
+      this.port.set({ brk: false }, (error) => {
+        if (error) throw error;
+        callback();
+      });
+    });
+  }
+
   async sendPacket(packet: HCPPacket, delay?: number): Promise<void> {
     if (delay !== undefined && delay > 0) {
       trace(`sleeping for ${delay}ms before sending`);
@@ -165,12 +188,18 @@ export class SerialHCPClient extends EventEmitter {
     }
 
     return new Promise((resolve, reject) => {
-      this.port.write(packet, (error) => {
-        if (error) {
-          return reject(error);
-        } else {
-          return resolve();
-        }
+      // send a sync break first
+      trace("sending sync break");
+      this.sendBreak(SYNC_BREAK_DURATION_MS, () => {
+        trace("sending packet");
+        this.port.write(packet, (error) => {
+          if (error) {
+            return reject(error);
+          } else {
+            // TODO: drain write buffer?
+            return resolve();
+          }
+        });
       });
     });
   }
