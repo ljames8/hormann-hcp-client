@@ -17,6 +17,11 @@ enum PKT_HEADER {
   LENGTH,
   __SIZE,
 }
+/** The Hormann Communication Protocol (HCP) uses a type of LIN messaging protocol
+ * the master is the garage door driver, the slave is the external controller (eg UAP1 device)
+ * the RS485 transceiver may translate the LIN SYNC BREAKS to 0x00 bytes
+ */
+
 const SYNC_BREAK = 0x00;
 
 export class HCPPacket extends Uint8Array {
