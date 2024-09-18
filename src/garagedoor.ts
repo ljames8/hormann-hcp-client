@@ -1,97 +1,161 @@
+import { EventEmitter } from "events";
+
+import Debug, { Debugger } from "debug";
+
 import {
-  AccessoryConfig,
-  AccessoryPlugin,
-  CharacteristicValue,
-  API,
-  HAP,
-  Logging,
-  Service,
-} from "homebridge";
-import {ACCESSORY_NAME, PLUGIN_NAME} from './settings';
+  SerialHCPClient,
+  SerialOptions,
+  STATUS_RESPONSE_BYTE0_BITFIELD,
+  BROADCAST_STATUS_BYTE0_BITFIELD,
+  DIRECTION,
+} from "./serialHCPClient";
+import { PacketFilterParams } from "./parser";
 
-let hap: HAP;
-/**
- * This method registers the platform with Homebridge
- */
-export = (api: API) => {
-  api.registerAccessory(PLUGIN_NAME, ACCESSORY_NAME, GarageDoorOpenerAccessory);
-};
+export enum CurrentDoorState {
+  OPEN,
+  CLOSED,
+  OPENING,
+  CLOSING,
+  STOPPED,
+  VENTING,
+}
 
-class GarageDoorOpenerAccessory implements AccessoryPlugin {
+export enum TargetDoorState {
+  OPEN,
+  CLOSED,
+  VENTING = 5,
+}
 
-  private readonly log: Logging;
-  private readonly name: string;
+abstract class GarageDoorOpener extends EventEmitter {
+  protected name: string;
+  protected manufacturer!: string;
+  protected model!: string;
+  protected currentState: CurrentDoorState | null;
+  protected targetState: TargetDoorState | null;
 
-  private readonly service: Service;
-
-  constructor(log: Logging, config: AccessoryConfig, api: API) {
-    this.log = log;
-    this.name = config.name;
-
-    // create a new Garage Door Opener service
-    this.service = new hap.Service.GarageDoorOpener(this.name);
-
-    // create handlers for required characteristics
-    this.service
-      .getCharacteristic(hap.Characteristic.CurrentDoorState)
-      .onGet(this.handleCurrentDoorStateGet.bind(this));
-
-    this.service
-      .getCharacteristic(hap.Characteristic.TargetDoorState)
-      .onGet(this.handleTargetDoorStateGet.bind(this))
-      .onSet(this.handleTargetDoorStateSet.bind(this));
-
-    this.service
-      .getCharacteristic(hap.Characteristic.ObstructionDetected)
-      .onGet(this.handleObstructionDetectedGet.bind(this));
+  constructor(name: string) {
+    super();
+    this.name = name;
+    this.currentState = null;
+    this.targetState = null;
   }
 
-  getServices() {
-    return [
-      // this.informationService,
-      this.service,
-    ];
-  }
-  /**
-   * Handle requests to get the current value of the "Current Door State" characteristic
-   */
-  handleCurrentDoorStateGet() {
-    this.log.debug("Triggered GET CurrentDoorState");
+  public abstract getCurrentState(): CurrentDoorState;
+  public abstract getTargetState(): TargetDoorState;
+  public abstract setTargetState(newState: TargetDoorState): Promise<void>;
+}
 
-    // set this to a valid value for CurrentDoorState
-    const currentValue = hap.Characteristic.CurrentDoorState.OPEN;
+export class HormannGarageDoorOpener extends GarageDoorOpener {
+  hcpClient: SerialHCPClient;
+  logger: Debugger;
+  broadcastStatus: Uint8Array;
 
-    return currentValue;
-  }
-
-  /**
-   * Handle requests to get the current value of the "Target Door State" characteristic
-   */
-  handleTargetDoorStateGet() {
-    this.log.debug("Triggered GET TargetDoorState");
-
-    // set this to a valid value for TargetDoorState
-    const currentValue = hap.Characteristic.TargetDoorState.OPEN;
-
-    return currentValue;
+  constructor(
+    name: string = "Hörmann Garage Door",
+    { path, ...rest }: SerialOptions,
+    { packetTimeout = 50, filterBreaks = true, filterMaxLength = true }: PacketFilterParams = {},
+  ) {
+    super(name);
+    this.logger = Debug(`door:${this.name}`);
+    this.manufacturer = "Hörmann";
+    this.model = "Supramatic E3";
+    this.broadcastStatus = new Uint8Array(2);
+    this.hcpClient = new SerialHCPClient(
+      { path, ...rest },
+      { packetTimeout, filterBreaks, filterMaxLength },
+    );
+    this.hcpClient.on("data", this.onBroadcast.bind(this));
   }
 
-  /**
-   * Handle requests to set the "Target Door State" characteristic
-   */
-  handleTargetDoorStateSet(value: CharacteristicValue) {
-    this.log.debug("Triggered SET TargetDoorState:", value);
+  static targetStateToRequest(targetState: TargetDoorState): {
+    flags: STATUS_RESPONSE_BYTE0_BITFIELD[];
+    emergencyStop?: boolean;
+  } {
+    switch (targetState) {
+      case TargetDoorState.OPEN: {
+        return { flags: [STATUS_RESPONSE_BYTE0_BITFIELD.OPEN] };
+      }
+      case TargetDoorState.CLOSED: {
+        return { flags: [STATUS_RESPONSE_BYTE0_BITFIELD.CLOSE] };
+      }
+      case TargetDoorState.VENTING: {
+        return { flags: [STATUS_RESPONSE_BYTE0_BITFIELD.VENTING] };
+      }
+    }
   }
 
-  /**
-   * Handle requests to get the current value of the "Obstruction Detected" characteristic
-   */
-  handleObstructionDetectedGet() {
-    this.log.debug("Triggered GET ObstructionDetected");
+  static broadcastToCurrentState(status: Uint8Array): CurrentDoorState | Error {
+    const bitField = SerialHCPClient.extractBitfield(status[0]);
+    if (bitField[BROADCAST_STATUS_BYTE0_BITFIELD.ERROR_ACTIVE] === true) {
+      return new Error("Error active");
+    }
+    if (bitField[BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_MOVING] === true) {
+      switch (bitField[BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_DIRECTION]) {
+        case Boolean(DIRECTION.OPENING):
+          return CurrentDoorState.OPENING;
+        case Boolean(DIRECTION.CLOSING):
+          return CurrentDoorState.CLOSING;
+      }
+    }
+    // if not moving and no error
+    if (bitField[BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_OPENED] === true) {
+      return CurrentDoorState.OPEN;
+    } else if (bitField[BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_CLOSED] === true) {
+      return CurrentDoorState.CLOSED;
+    } else if (bitField[BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_VENTING] === true) {
+      return CurrentDoorState.VENTING;
+    } else {
+      return new Error("Unknown status");
+    }
+  }
 
-    // set this to a valid value for ObstructionDetected
-    const currentValue = 1;
+  private onBroadcast(status: Uint8Array) {
+    // client 'data' callback, for each broadcast status update
+    if (status[0] != this.broadcastStatus[0]) {
+      // consider only byte 0 as info from byte 1 unknown
+      this.broadcastStatus = status;
+      const newState = HormannGarageDoorOpener.broadcastToCurrentState(status);
+      if (newState instanceof Error) {
+        this.emit("error", newState);
+      } else {
+        this.currentState = newState;
+        this.logger(`Current state now ${CurrentDoorState[this.currentState]}`);
+        this.emit("update", newState);
+      }
+    }
+  }
 
-    return currentValue;
+  public getCurrentState(): CurrentDoorState {
+    if (this.currentState === null) {
+      throw new Error("Current state cannot be retrieved");
+    } else {
+      return this.currentState;
+    }
+  }
+
+  public getTargetState(): TargetDoorState {
+    if (this.targetState === null) {
+      throw new Error("Target state is not set");
+    } else {
+      return this.targetState;
+    }
+  }
+
+  public setTargetState(newState: TargetDoorState): Promise<void> {
+    if (this.targetState === newState) {
+      this.logger(`Target state already ${TargetDoorState[this.targetState]}(${newState})`);
+      return Promise.resolve();
+    } else if (this.currentState === (newState as unknown as CurrentDoorState)) {
+      this.logger(`Current state already ${CurrentDoorState[this.currentState]}(${newState})`);
+      this.targetState = newState;
+      return Promise.resolve();
+    } else {
+      // ask client to operate door
+      const { flags, emergencyStop } = HormannGarageDoorOpener.targetStateToRequest(newState);
+      return this.hcpClient.pushCommand(flags, emergencyStop).then(() => {
+        this.targetState = newState;
+        this.logger(`Target state set to ${TargetDoorState[this.targetState]}`);
+      });
+    }
   }
 }
