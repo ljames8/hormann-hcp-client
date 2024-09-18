@@ -4,7 +4,6 @@ import { SerialPortMock } from "serialport";
 import {
   SerialHCPClient,
   BROADCAST_STATUS_BYTE0_BITFIELD,
-  DEFAULT_BAUDRATE,
   STATUS_RESPONSE_BYTE0_BITFIELD,
 } from "@src/serialHCPClient";
 import { HCPPacket } from "@src/parser";
@@ -86,7 +85,7 @@ describe("SerialHCPClient low-level", () => {
 
   describe("Slave commands processing", () => {
     MockBinding.createPort(serialPath, { echo: false, record: false });
-    const client = new SerialHCPClient({ path: serialPath, baudRate: DEFAULT_BAUDRATE });
+    const client = new SerialHCPClient({ path: serialPath, baudRate: 19200 });
 
     it("should throw if bad slave msg", () => {
       const badScan = HCPPacket.fromBuffer(Buffer.from("00d20e0218", "hex"));
@@ -126,7 +125,7 @@ describe("SerialHCPClient low-level", () => {
 
   describe("Slave command responses", () => {
     MockBinding.createPort(serialPath, { echo: false, record: false });
-    const client = new SerialHCPClient({ path: serialPath, baudRate: DEFAULT_BAUDRATE });
+    const client = new SerialHCPClient({ path: serialPath });
 
     it("should ignore packet not addressed to slave", () => {
       // testing with another destination address 0xaa
@@ -208,7 +207,7 @@ describe("SerialHCPClient low-level", () => {
     // didn't find much apart from checking the break duration
     it("should perform a sync break for the right duration", (done) => {
       MockBinding.createPort(serialPath, { echo: false, record: false });
-      const client = new SerialHCPClient({ path: serialPath, baudRate: DEFAULT_BAUDRATE });
+      const client = new SerialHCPClient({ path: serialPath });
       client.once("open", () => {
         const start = performance.now();
         client.sendBreak(100, () => {
@@ -222,7 +221,7 @@ describe("SerialHCPClient low-level", () => {
 
   describe("Sending commands", () => {
     MockBinding.createPort(serialPath, { echo: false, record: true });
-    const client = new SerialHCPClient({ path: serialPath, baudRate: DEFAULT_BAUDRATE });
+    const client = new SerialHCPClient({ path: serialPath });
 
     describe("sendPacket tests", () => {
       it("should send packet without delay", () => {
@@ -253,7 +252,7 @@ describe("SerialHCPClient high-level", () => {
 
   it("should auto-open port when instanciated", (done) => {
     MockBinding.createPort(serialPath, { echo: false, record: false });
-    const client = new SerialHCPClient({ path: serialPath, baudRate: DEFAULT_BAUDRATE });
+    const client = new SerialHCPClient({ path: serialPath });
     client.on("open", done);
   });
 
@@ -261,7 +260,6 @@ describe("SerialHCPClient high-level", () => {
     MockBinding.createPort(serialPath, { echo: false, record: false });
     const client = new SerialHCPClient({
       path: serialPath,
-      baudRate: DEFAULT_BAUDRATE,
       autoOpen: false,
     });
 
@@ -281,7 +279,7 @@ describe("SerialHCPClient high-level", () => {
     "should unpack broadcast messages - counter %i",
     (nextMessageCounter, done) => {
       MockBinding.createPort(serialPath, { echo: false, record: false });
-      const client = new SerialHCPClient({ path: serialPath, baudRate: DEFAULT_BAUDRATE });
+      const client = new SerialHCPClient({ path: serialPath });
       client.once("error", (error) => {
         done(error);
       });
@@ -308,7 +306,7 @@ describe("SerialHCPClient high-level", () => {
 
   it("should push command at the next slave status request", () => {
     MockBinding.createPort(serialPath, { echo: false, record: true });
-    const client = new SerialHCPClient({ path: serialPath, baudRate: DEFAULT_BAUDRATE });
+    const client = new SerialHCPClient({ path: serialPath });
     expect(client.sendQueue.length).toEqual(0);
     const promise = client.pushCommand([STATUS_RESPONSE_BYTE0_BITFIELD.OPEN]);
     expect(client.sendQueue.length).toEqual(1);
@@ -329,7 +327,7 @@ describe("SerialHCPClient high-level", () => {
   it("should respond correctly to startup data", (done) => {
     MockBinding.createPort(serialPath, { echo: false, record: true });
     const client = new SerialHCPClient(
-      { path: serialPath, baudRate: DEFAULT_BAUDRATE },
+      { path: serialPath },
       { filterBreaks: true, filterMaxLength: true, packetTimeout: 5 },
     );
     // fake nextMessageCounter start

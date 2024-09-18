@@ -8,7 +8,7 @@ import { AutoDetectTypes } from "@serialport/bindings-cpp";
 const debug = Debug("hcp:client");
 const trace = Debug("hcp:serial");
 
-export const DEFAULT_BAUDRATE = 19200;
+const DEFAULT_BAUDRATE = 19200;
 const MIN_RESPONSE_DELAY_MS = 3;
 // LIN message sync break must be at least 13 bits long
 // so 13/19200 ~= 0.68ms
@@ -66,6 +66,12 @@ export interface ResponsePayload {
   reject?: (reason?: string) => void;
 }
 
+export interface SerialOptions extends Omit<SerialPortOpenOptions<AutoDetectTypes>, "baudRate"> {
+  // Make baudRate optional for the HCP client
+  baudRate?: number; 
+}
+
+
 export class SerialHCPClient extends EventEmitter {
   private parser: BatchHCPPacketParser;
   port: SerialPort;
@@ -73,7 +79,7 @@ export class SerialHCPClient extends EventEmitter {
   sendQueue: ResponsePayload[];
 
   constructor(
-    { path, baudRate, ...rest }: SerialPortOpenOptions<AutoDetectTypes>,
+    { path, baudRate = DEFAULT_BAUDRATE, ...rest }: SerialOptions,
     parserOptions?: PacketFilterParams,
   ) {
     super();
