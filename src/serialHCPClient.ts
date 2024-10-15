@@ -242,8 +242,6 @@ export class SerialHCPClient extends EventEmitter {
         const response = this.processSlaveCommand(packet);
         // set response counter
         if (response.counter === undefined) response.counter = this.nextMessageCounter;
-        // increment counter again for next message to be read
-        this.nextMessageCounter = SerialHCPClient.getNextCounter(response.counter);
         if (response.reject === undefined)
           response.reject = (reason) => {
             throw new Error(reason);

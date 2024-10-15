@@ -144,18 +144,17 @@ describe("SerialHCPClient low-level", () => {
     });
 
     it("should handle correctly slave message counters", () => {
-      const pkt1 = HCPPacket.fromBuffer(Buffer.from("28e12075", "hex"));
+      const pkt1 = HCPPacket.fromBuffer(Buffer.from("28f12022", "hex"));
       const pkt2 = HCPPacket.fromBuffer(Buffer.from("28012036", "hex"));
       // fake next message counter set to the expected value
-      client.nextMessageCounter = 14;
-      const response1 = client.processMessage(pkt1);
-      // check response counter is the next one 14 + 1
-      expect(response1?.counter).toEqual(15);
+      client.nextMessageCounter = 15;
+      client.processMessage(pkt1);
       // check incremented counter is right (16 modulo 16 == 0)
       expect(client.nextMessageCounter).toEqual(0);
       const response2 = client.processMessage(pkt2);
+      // response counter matches next counter
       expect(response2?.counter).toEqual(1);
-      expect(client.nextMessageCounter).toEqual(2);
+      expect(client.nextMessageCounter).toEqual(1);
     });
 
     it("should sync message counter on broadcast", () => {
@@ -175,9 +174,8 @@ describe("SerialHCPClient low-level", () => {
       expect(client.nextMessageCounter).toEqual(10);
       response = client.processMessage(pkt3);
       expect(response).not.toBe(null);
-      // response increments the counter
       expect(response!.counter).toEqual(11);
-      expect(client.nextMessageCounter).toEqual(12);
+      expect(client.nextMessageCounter).toEqual(11);
     });
 
     it("slave scan response should have default callbacks", (done) => {
