@@ -30,19 +30,20 @@ abstract class GarageDoorOpener extends EventEmitter {
   protected name: string;
   protected manufacturer!: string;
   protected model!: string;
-  protected currentState: CurrentDoorState | null;
-  protected targetState: TargetDoorState | null;
+  protected currentState: CurrentDoorState | null = null;
+  protected targetState: TargetDoorState | null = null;
+  protected lightState: boolean | null = null;
 
   constructor(name: string) {
     super();
     this.name = name;
-    this.currentState = null;
-    this.targetState = null;
   }
 
   public abstract getCurrentState(): CurrentDoorState;
   public abstract getTargetState(): TargetDoorState;
   public abstract setTargetState(newState: TargetDoorState): Promise<void>;
+  public abstract getLightOnState(): boolean;
+  public abstract setLightOnState(newState: boolean): Promise<void>;
 }
 
 export class HormannGarageDoorOpener extends GarageDoorOpener {
@@ -84,26 +85,30 @@ export class HormannGarageDoorOpener extends GarageDoorOpener {
     }
   }
 
-  static broadcastToCurrentState(status: Uint8Array): CurrentDoorState | Error {
+  static broadcastToCurrentState(
+    status: Uint8Array,
+  ): { door: CurrentDoorState; light: boolean } | Error {
     const bitField = SerialHCPClient.extractBitfield(status[0]);
     if (bitField[BROADCAST_STATUS_BYTE0_BITFIELD.ERROR_ACTIVE] === true) {
       return new Error("Error active");
     }
+    const lightState = bitField[BROADCAST_STATUS_BYTE0_BITFIELD.LIGHT_RELAY_ON];
+
     if (bitField[BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_MOVING] === true) {
       switch (bitField[BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_DIRECTION]) {
         case Boolean(DIRECTION.OPENING):
-          return CurrentDoorState.OPENING;
+          return { door: CurrentDoorState.OPENING, light: lightState };
         case Boolean(DIRECTION.CLOSING):
-          return CurrentDoorState.CLOSING;
+          return { door: CurrentDoorState.CLOSING, light: lightState };
       }
     }
     // if not moving and no error
     if (bitField[BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_OPENED] === true) {
-      return CurrentDoorState.OPEN;
+      return { door: CurrentDoorState.OPEN, light: lightState };
     } else if (bitField[BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_CLOSED] === true) {
-      return CurrentDoorState.CLOSED;
+      return { door: CurrentDoorState.CLOSED, light: lightState };
     } else if (bitField[BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_VENTING] === true) {
-      return CurrentDoorState.VENTING;
+      return { door: CurrentDoorState.VENTING, light: lightState };
     } else {
       return new Error("Unknown status");
     }
@@ -118,9 +123,16 @@ export class HormannGarageDoorOpener extends GarageDoorOpener {
       if (newState instanceof Error) {
         this.emit("error", newState);
       } else {
-        this.currentState = newState;
-        this.logger(`Current state now ${CurrentDoorState[this.currentState]}`);
-        this.emit("update", newState);
+        if (this.currentState != newState.door) {
+          this.currentState = newState.door;
+          this.logger(`Current door state now ${CurrentDoorState[this.currentState]}`);
+          this.emit("update_door", newState.door);
+        }
+        if (this.lightState != newState.light) {
+          this.lightState = newState.light;
+          this.logger(`Current light state now ${this.lightState}`);
+          this.emit("update_light", newState.light);
+        }
       }
     }
   }
@@ -156,6 +168,26 @@ export class HormannGarageDoorOpener extends GarageDoorOpener {
         this.targetState = newState;
         this.logger(`Target state set to ${TargetDoorState[this.targetState]}`);
       });
+    }
+  }
+
+  public getLightOnState(): boolean {
+    if (this.lightState === null) {
+      throw new Error("Light state is not set");
+    } else {
+      return this.lightState;
+    }
+  }
+
+  public setLightOnState(newState: boolean): Promise<void> {
+    if (this.lightState === newState) {
+      this.logger(`Light On state already ${newState}`);
+      return Promise.resolve();
+    } else {
+      // ask client to toggle light
+      return this.hcpClient
+        .pushCommand([STATUS_RESPONSE_BYTE0_BITFIELD.TOGGLE_LIGHT], false)
+        .then(() => {});
     }
   }
 }
