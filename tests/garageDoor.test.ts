@@ -1,4 +1,5 @@
 import { CurrentDoorState, HormannGarageDoorOpener, TargetDoorState } from "@src/garagedoor";
+import { SerialHCPClient } from "@src/serialHCPClient";
 import { HCPPacket } from "@src/parser";
 jest.mock("serialport");
 
@@ -72,7 +73,7 @@ describe("garageDoor static methods", () => {
 describe("garageDoor getter methods", () => {
   let garage: HormannGarageDoorOpener;
   beforeEach(() => {
-    garage = new HormannGarageDoorOpener("test", { path: "/doest/not/exist" });
+    garage = new HormannGarageDoorOpener("test", new SerialHCPClient({ path: "/does/not/exist" }));
   });
 
   it("should throw error if states not initialized", () => {
@@ -134,7 +135,10 @@ describe("garageDoor getter methods", () => {
 });
 
 describe("garageDoor set state", () => {
-  const garage = new HormannGarageDoorOpener("test", { path: "/doest/not/exist" });
+  const garage = new HormannGarageDoorOpener(
+    "test",
+    new SerialHCPClient({ path: "/does/not/exist" }),
+  );
   let mockPushCommand: jest.SpyInstance;
   let loggerSpy: jest.SpyInstance;
 

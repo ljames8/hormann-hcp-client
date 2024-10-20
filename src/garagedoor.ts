@@ -8,8 +8,11 @@ import {
   STATUS_RESPONSE_BYTE0_BITFIELD,
   BROADCAST_STATUS_BYTE0_BITFIELD,
   DIRECTION,
+  HCPClient,
 } from "./serialHCPClient";
 import { PacketFilterParams } from "./parser";
+
+export { SerialOptions, PacketFilterParams };
 
 export enum CurrentDoorState {
   OPEN,
@@ -27,7 +30,7 @@ export enum TargetDoorState {
 }
 
 abstract class GarageDoorOpener extends EventEmitter {
-  protected name: string;
+  readonly name: string;
   protected manufacturer!: string;
   protected model!: string;
   protected currentState: CurrentDoorState | null = null;
@@ -47,24 +50,18 @@ abstract class GarageDoorOpener extends EventEmitter {
 }
 
 export class HormannGarageDoorOpener extends GarageDoorOpener {
-  hcpClient: SerialHCPClient;
   logger: Debugger;
   broadcastStatus: Uint8Array;
 
   constructor(
-    name: string = "Hörmann Garage Door",
-    { path, ...rest }: SerialOptions,
-    { packetTimeout = 50, filterBreaks = true, filterMaxLength = true }: PacketFilterParams = {},
+    name: string,
+    public hcpClient: HCPClient,
   ) {
     super(name);
     this.logger = Debug(`door:${this.name}`);
     this.manufacturer = "Hörmann";
     this.model = "Supramatic E3";
     this.broadcastStatus = new Uint8Array(2);
-    this.hcpClient = new SerialHCPClient(
-      { path, ...rest },
-      { packetTimeout, filterBreaks, filterMaxLength },
-    );
     this.hcpClient.on("data", this.onBroadcast.bind(this));
   }
 
@@ -190,4 +187,16 @@ export class HormannGarageDoorOpener extends GarageDoorOpener {
         .then(() => {});
     }
   }
+}
+
+export function createHormannGarageDoorOpener(
+  /** factory function to create a serial enabled Hormann garage door opener */
+  name: string = "Hörmann Garage Door",
+  { path, ...rest }: SerialOptions,
+  { packetTimeout = 50, filterBreaks = true, filterMaxLength = true }: PacketFilterParams = {},
+): HormannGarageDoorOpener {
+  return new HormannGarageDoorOpener(
+    name,
+    new SerialHCPClient({ path, ...rest }, { packetTimeout, filterBreaks, filterMaxLength }),
+  );
 }
