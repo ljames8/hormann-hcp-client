@@ -20,7 +20,6 @@ Hörmann drive `bus` socket <-> RJ12 cable <-> RS485 transceiver <-> {RaspberryP
 ## Installation
 Add the npm package to your Typescript / Node.js project's dependencies
 ```bash
-#TODO: publish package
 npm install --save hormann-hcp-client
 ```
 
