@@ -83,6 +83,9 @@ describe("garageDoor getter methods", () => {
     expect(() => {
       garage.getTargetState();
     }).toThrow("Target state is not set");
+    expect(() => {
+      garage.getLightOnState();
+    }).toThrow("Light state is not set");
   });
 
   it("should update door status on data event from serial hcp client", () => {
