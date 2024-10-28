@@ -122,6 +122,7 @@ export class HormannGarageDoorOpener extends GarageDoorOpener {
       const newState = HormannGarageDoorOpener.broadcastToCurrentState(status);
       if (newState instanceof Error) {
         this.emit("error", newState);
+        // TODO: set current state as STOPPED ?
       } else {
         if (this.currentState != newState.door) {
           this.currentState = newState.door;
