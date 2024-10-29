@@ -196,7 +196,7 @@ export class HormannGarageDoorOpener extends GarageDoorOpener {
 
 export function createHormannGarageDoorOpener(
   /** factory function to create a serial enabled Hormann garage door opener */
-  name: string = "Hörmann Garage Door",
+  name: string | undefined,
   { path, ...rest }: SerialOptions,
   { packetTimeout = 50, filterBreaks = true, filterMaxLength = true }: PacketFilterParams = {},
 ): HormannGarageDoorOpener {

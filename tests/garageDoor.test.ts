@@ -1,4 +1,5 @@
 import {
+    createHormannGarageDoorOpener,
   CurrentDoorState,
   HormannGarageDoorOpener,
   TargetDoorState,
@@ -77,7 +78,7 @@ describe("garageDoor static methods", () => {
 describe("garageDoor getter methods", () => {
   let garage: HormannGarageDoorOpener;
   beforeEach(() => {
-    garage = new HormannGarageDoorOpener("test", new SerialHCPClient({ path: "/does/not/exist" }));
+    garage = createHormannGarageDoorOpener("test", {path: "/dev/does/not/exist"});
   });
 
   it("should throw error if states not initialized", () => {
