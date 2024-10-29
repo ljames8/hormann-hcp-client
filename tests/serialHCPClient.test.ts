@@ -8,7 +8,7 @@ import {
 } from "@src/serialHCPClient";
 import { HCPPacket } from "@src/parser";
 import { afterEach, describe } from "node:test";
-import { IntervalReadable } from "@tests/lib/mockup";
+import { IntervalReadable } from "./lib/mockup";
 import { arraysEqual } from "@src/utils";
 
 // ref: https://stackoverflow.com/a/74957308/12544140

@@ -9,7 +9,6 @@
     "forceConsistentCasingInFileNames": true,
     "paths": {
       "@src/*": ["./src/*"],
-      "@tests/lib/*": ["./tests/lib/*"]
     },
   },
 }

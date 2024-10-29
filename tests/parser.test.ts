@@ -5,7 +5,7 @@ import {
   BatchHCPPacketParser,
 } from "@src/parser";
 import { arraysEqual } from "@src/utils";
-import { IntervalReadable } from "@tests/lib/mockup";
+import { IntervalReadable } from "./lib/mockup";
 
 const TEST_PACKET_STR = "80f329001008";
 const TEST_PACKET_BUF = Buffer.from(TEST_PACKET_STR, "hex");
