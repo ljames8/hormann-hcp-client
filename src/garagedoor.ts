@@ -12,7 +12,8 @@ import {
 } from "./serialHCPClient";
 import { PacketFilterParams } from "./parser";
 
-export { SerialOptions, PacketFilterParams };
+export { MockHCPClient } from "./mockHCPClient";
+export { HCPClient, SerialHCPClient, SerialOptions, PacketFilterParams };
 
 export enum CurrentDoorState {
   OPEN,
