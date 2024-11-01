@@ -2,32 +2,30 @@ import { CurrentDoorState, HormannGarageDoorOpener, TargetDoorState } from "@src
 import { MockHCPClient } from "@src/mockHCPClient";
 import { STATUS_RESPONSE_BYTE0_BITFIELD } from "@src/serialHCPClient";
 
-
 describe("MockHCPClient tests", () => {
-  it("should mock the right broadcast statuses from given door states", () => {
-    expect(MockHCPClient.doorStateToBroadcastStatus(CurrentDoorState.CLOSED)).toEqual(
-      Uint8Array.from([0x01, 0xff]),
-    );
-    expect(MockHCPClient.doorStateToBroadcastStatus(CurrentDoorState.OPEN)).toEqual(
-      Uint8Array.from([0x02, 0xff]),
-    );
-    expect(MockHCPClient.doorStateToBroadcastStatus(CurrentDoorState.VENTING)).toEqual(
-      Uint8Array.from([0x80, 0xff]),
-    );
-    expect(MockHCPClient.doorStateToBroadcastStatus(CurrentDoorState.CLOSING)).toEqual(
-      Uint8Array.from([0x60, 0xff]),
-    );
-    expect(MockHCPClient.doorStateToBroadcastStatus(CurrentDoorState.OPENING)).toEqual(
-      Uint8Array.from([0x40, 0xff]),
-    );
+  it("should mock the right broadcast status byte from given door states", () => {
+    expect(MockHCPClient.doorStateToBroadcastStatusByte(CurrentDoorState.CLOSED)).toEqual(0x01);
+    expect(MockHCPClient.doorStateToBroadcastStatusByte(CurrentDoorState.OPEN)).toEqual(0x02);
+    expect(MockHCPClient.doorStateToBroadcastStatusByte(CurrentDoorState.VENTING)).toEqual(0x80);
+    expect(MockHCPClient.doorStateToBroadcastStatusByte(CurrentDoorState.CLOSING)).toEqual(0x60);
+    expect(MockHCPClient.doorStateToBroadcastStatusByte(CurrentDoorState.OPENING)).toEqual(0x40);
   });
 
-  it("should mock the right broadcast statuses from light states", () => {
-    expect(MockHCPClient.lightStateToBroadcastStatus(false)).toEqual(Uint8Array.from([0x01, 0xff]));
-    expect(MockHCPClient.lightStateToBroadcastStatus(true)).toEqual(Uint8Array.from([0x09, 0xff]));
-    expect(MockHCPClient.lightStateToBroadcastStatus(false, 0x02)).toEqual(
-      Uint8Array.from([0x02, 0xff]),
-    );
+  it("should mock the right broadcast status byte from light states", () => {
+    expect(MockHCPClient.lightStateToBroadcastStatusByte(false)).toEqual(0x00);
+    expect(MockHCPClient.lightStateToBroadcastStatusByte(true)).toEqual(0x08);
+  });
+
+  it("should mck the right broadcast statuses from garage door states", () => {
+    expect(
+      MockHCPClient.garageStateToBroadcastStatus({ door: CurrentDoorState.CLOSED, light: false }),
+    ).toEqual(Uint8Array.from([0x01, 0xff]));
+    expect(
+      MockHCPClient.garageStateToBroadcastStatus({ door: CurrentDoorState.CLOSED, light: true }),
+    ).toEqual(Uint8Array.from([0x09, 0xff]));
+    expect(
+      MockHCPClient.garageStateToBroadcastStatus({ door: CurrentDoorState.VENTING, light: true }),
+    ).toEqual(Uint8Array.from([0x88, 0xff]));
   });
 
   it("should infer the right following states from previous ones", () => {
@@ -37,28 +35,28 @@ describe("MockHCPClient tests", () => {
         door: CurrentDoorState.CLOSED,
         light: false,
       }),
-    ).toEqual({door: CurrentDoorState.OPENING, light: false});
+    ).toEqual({ door: CurrentDoorState.OPENING, light: false });
     // opened > closing
     expect(
       MockHCPClient.responseStatusToNextState([STATUS_RESPONSE_BYTE0_BITFIELD.CLOSE], {
         door: CurrentDoorState.OPEN,
         light: false,
       }),
-    ).toEqual({door: CurrentDoorState.CLOSING, light: false});
+    ).toEqual({ door: CurrentDoorState.CLOSING, light: false });
     // already opened
     expect(
       MockHCPClient.responseStatusToNextState([STATUS_RESPONSE_BYTE0_BITFIELD.CLOSE], {
         door: CurrentDoorState.CLOSED,
         light: false,
       }),
-    ).toEqual({door: CurrentDoorState.CLOSED, light: false});
+    ).toEqual({ door: CurrentDoorState.CLOSED, light: false });
     // already closed
     expect(
       MockHCPClient.responseStatusToNextState([STATUS_RESPONSE_BYTE0_BITFIELD.OPEN], {
         door: CurrentDoorState.OPEN,
         light: false,
       }),
-    ).toEqual({door: CurrentDoorState.OPEN, light: false});
+    ).toEqual({ door: CurrentDoorState.OPEN, light: false });
   });
 
   describe("MockHCPClient instanciated tests", () => {

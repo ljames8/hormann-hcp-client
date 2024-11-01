@@ -64,47 +64,43 @@ export class MockHCPClient extends EventEmitter implements HCPClient {
     return this.pushCommandMock(flags, emergencyStop);
   }
 
-  static doorStateToBroadcastStatus(state: CurrentDoorState): Uint8Array {
+  static doorStateToBroadcastStatusByte(state: CurrentDoorState): number {
+    switch (state) {
+      case CurrentDoorState.CLOSED:
+        return 1 << BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_CLOSED;
+      case CurrentDoorState.OPEN:
+        return 1 << BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_OPENED;
+      case CurrentDoorState.CLOSING: {
+        // set direction
+        return (
+          (1 << BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_MOVING) |
+          ((1 << BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_DIRECTION) * DIRECTION.CLOSING)
+        );
+      }
+      case CurrentDoorState.OPENING: {
+        // set direction
+        return (
+          (1 << BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_MOVING) |
+          ((1 << BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_DIRECTION) * DIRECTION.OPENING)
+        );
+      }
+      case CurrentDoorState.VENTING:
+        return 1 << BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_VENTING;
+      case CurrentDoorState.STOPPED:
+        return 1 << BROADCAST_STATUS_BYTE0_BITFIELD.ERROR_ACTIVE;
+    }
+  }
+
+  static lightStateToBroadcastStatusByte(state: boolean): number {
+    return state === true ? 1 << BROADCAST_STATUS_BYTE0_BITFIELD.LIGHT_RELAY_ON : 0;
+  }
+
+  static garageStateToBroadcastStatus(state: GarageState): Uint8Array {
     const status = new Uint8Array(2);
     // set arbitrary 2nd status byte value
     status[1] = 0xff;
-    switch (state) {
-      case CurrentDoorState.CLOSED:
-        status[0] = 1 << BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_CLOSED;
-        break;
-      case CurrentDoorState.OPEN:
-        status[0] = 1 << BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_OPENED;
-        break;
-      case CurrentDoorState.CLOSING: {
-        status[0] = 1 << BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_MOVING;
-        // set direction
-        status[0] |= (1 << BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_DIRECTION) * DIRECTION.CLOSING;
-        break;
-      }
-      case CurrentDoorState.OPENING: {
-        status[0] = 1 << BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_MOVING;
-        // set direction
-        status[0] |= (1 << BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_DIRECTION) * DIRECTION.OPENING;
-        break;
-      }
-      case CurrentDoorState.VENTING:
-        status[0] = 1 << BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_VENTING;
-        break;
-      case CurrentDoorState.STOPPED:
-        status[0] = 1 << BROADCAST_STATUS_BYTE0_BITFIELD.ERROR_ACTIVE;
-        break;
-    }
-    return status;
-  }
-
-  static lightStateToBroadcastStatus(state: boolean, initialState: number = 0x01): Uint8Array {
-    const status = new Uint8Array(2);
-    status[0] = initialState;
-    status[1] = 0xff;
-    if (state === true) {
-      // light on flag is set, else nothing is set
-      status[0] |= 1 << BROADCAST_STATUS_BYTE0_BITFIELD.LIGHT_RELAY_ON;
-    }
+    status[0] = MockHCPClient.doorStateToBroadcastStatusByte(state.door);
+    status[0] |= MockHCPClient.lightStateToBroadcastStatusByte(state.light);
     return status;
   }
 
@@ -135,10 +131,7 @@ export class MockHCPClient extends EventEmitter implements HCPClient {
   }
 
   emitGarageState(state: GarageState): boolean {
-    const nextState = MockHCPClient.lightStateToBroadcastStatus(
-      state.light,
-      MockHCPClient.doorStateToBroadcastStatus(state.door)[0],
-    );
+    const nextState = MockHCPClient.garageStateToBroadcastStatus(state);
     const success = this.emit("data", nextState);
     if (success === true) this.mockState = state;
     return success;
@@ -151,10 +144,10 @@ export class MockHCPClient extends EventEmitter implements HCPClient {
   }
 
   emitDoorState(state: CurrentDoorState): boolean {
-    return this.emit("data", MockHCPClient.doorStateToBroadcastStatus(state));
+    return this.emitGarageState({ door: state, light: this.mockState.light });
   }
 
-  emitLightState(state: boolean, initialState?: number): boolean {
-    return this.emit("data", MockHCPClient.lightStateToBroadcastStatus(state, initialState));
+  emitLightState(state: boolean): boolean {
+    return this.emitGarageState({ door: this.mockState.door, light: state });
   }
 }
