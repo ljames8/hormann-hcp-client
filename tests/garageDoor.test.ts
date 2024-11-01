@@ -1,5 +1,5 @@
 import {
-    createHormannGarageDoorOpener,
+  createHormannGarageDoorOpener,
   CurrentDoorState,
   HormannGarageDoorOpener,
   TargetDoorState,
@@ -78,7 +78,7 @@ describe("garageDoor static methods", () => {
 describe("garageDoor getter methods", () => {
   let garage: HormannGarageDoorOpener;
   beforeEach(() => {
-    garage = createHormannGarageDoorOpener("test", {path: "/dev/does/not/exist"});
+    garage = createHormannGarageDoorOpener("test", { path: "/dev/does/not/exist" });
   });
 
   it("should throw error if states not initialized", () => {
