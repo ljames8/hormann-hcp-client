@@ -20,10 +20,47 @@ Hörmann drive `bus` socket <-> RJ12 cable <-> RS485 transceiver <-> {RaspberryP
 ## Installation
 Add the npm package to your Typescript / Node.js project's dependencies
 ```bash
-npm install --save hormann-hcp-client
+npm install --save @ljames8/hormann-hcp-client
 ```
 
 ## Usage
+
+### with Hormann driver connected to serial interface
+Example with "/dev/ttyUSB0" serial port
 ```typescript
 // TODO: provide minimal example
+```
+
+### with a Mock HCP client
+Use the mock client for test purposes
+```typescript
+import debug from "debug";
+import {
+  HormannGarageDoorOpener,
+  TargetDoorState,
+  CurrentDoorState,
+  MockHCPClient
+} from "@ljames8/hormann-hcp-client";
+
+debug.enable("door:*");
+const mockHCPClient = new MockHCPClient();
+// set infering door states to simulate garage logic
+mockHCPClient.pushCommandMock = mockHCPClient.inferPushCommandMock;
+// instanciate garage door opener with mocked client
+const garage = new HormannGarageDoorOpener("mock", mockHCPClient);
+// sync initial garage state
+mockHCPClient.emitGarageState(mockHCPClient.mockState);
+// mock closing and opening successes
+garage.on("update_door", (state) => {
+  if (state === CurrentDoorState.OPENING) {
+    setTimeout(() => mockHCPClient.emitDoorState(CurrentDoorState.OPEN), 5000);
+  } else if (state === CurrentDoorState.CLOSING) {
+    setTimeout(() => mockHCPClient.emitDoorState(CurrentDoorState.CLOSED), 5000);
+  }
+});
+
+// try it out
+garage.setTargetState(TargetDoorState.OPEN);
+// and then for instance
+garage.setLightOnState(true);
 ```
