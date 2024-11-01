@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 
-import { CurrentDoorState, GarageState } from "./garagedoor";
+import { CurrentDoorState, GarageState } from "./garageDoor";
 import {
   BROADCAST_STATUS_BYTE0_BITFIELD,
   DIRECTION,

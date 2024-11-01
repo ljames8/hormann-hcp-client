@@ -1,4 +1,4 @@
-import { CurrentDoorState, HormannGarageDoorOpener, TargetDoorState } from "@src/garagedoor";
+import { CurrentDoorState, HormannGarageDoorOpener, TargetDoorState } from "@src/garageDoor";
 import { MockHCPClient } from "@src/mockHCPClient";
 import { STATUS_RESPONSE_BYTE0_BITFIELD } from "@src/serialHCPClient";
 

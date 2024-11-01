@@ -3,7 +3,7 @@ import {
   CurrentDoorState,
   HormannGarageDoorOpener,
   TargetDoorState,
-} from "@src/garagedoor";
+} from "@src/garageDoor";
 import { SerialHCPClient } from "@src/serialHCPClient";
 import { HCPPacket } from "@src/parser";
 jest.mock("serialport");
