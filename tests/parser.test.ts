@@ -278,7 +278,7 @@ describe("BatchHCPPacketParser test", () => {
 });
 
 describe("Real time packet parsing tests", () => {
-  test.only.each([SimpleHCPPacketParser])(
+  test.each([SimpleHCPPacketParser])(
     "%p parser handles a real time stream of valid packets",
     (parserClass, done) => {
       // Create a mockup stream emitting packets every 10ms by chunks of size 6
