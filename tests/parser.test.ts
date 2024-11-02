@@ -296,6 +296,9 @@ describe("Real time packet parsing tests", () => {
       readable.end();
       parser.on("finish", () => {
         try {
+          // TODO: this intermittently fails due to one packet missing
+          expect(chunks[0].equals(Buffer.from("000b45453030303437382d303071", "hex"))).toBe(true);
+          expect(chunks[chunks.length - 1].equals(Buffer.from("80932900105d", "hex"))).toBe(true);
           expect(chunks.length).toBe(69);
           done();
         } catch (error) {
