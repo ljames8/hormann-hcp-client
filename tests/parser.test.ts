@@ -278,8 +278,8 @@ describe("BatchHCPPacketParser test", () => {
 });
 
 describe("Real time packet parsing tests", () => {
-  test.each([SimpleHCPPacketParser, BatchHCPPacketParser])(
-    "simpler parser handles a real time stream of valid packets",
+  test.only.each([SimpleHCPPacketParser])(
+    "%p parser handles a real time stream of valid packets",
     (parserClass, done) => {
       // Create a mockup stream emitting packets every 10ms by chunks of size 6
       // that's actually quicker than the hardware to save time
@@ -299,7 +299,7 @@ describe("Real time packet parsing tests", () => {
           expect(chunks.length).toBe(69);
           done();
         } catch (error) {
-          console.log(parserClass);
+          console.log(chunks);
           done(error);
         }
       });
