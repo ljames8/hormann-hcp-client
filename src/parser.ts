@@ -162,12 +162,12 @@ export class PacketFilter extends Transform {
     this.filterBreaks = filterBreaks;
   }
 
-  _initBuffer(): Buffer {
+  protected _initBuffer(): Buffer {
     // to override
     return Buffer.alloc(0);
   }
 
-  _resetBuffer() {
+  protected _resetBuffer = () => {
     // to override
     this.buffer = this._initBuffer();
   }
@@ -183,7 +183,7 @@ export class PacketFilter extends Transform {
     // method to preprocess chunk before passing it to _transform
     if (this.timeout > 0) {
       this._clearTimeout();
-      this.timer = setTimeout(this._resetBuffer.bind(this), this.timeout);
+      this.timer = setTimeout(this._resetBuffer, this.timeout);
     }
     if (this.filterMaxLength === true && chunk.length > MAX_PACKET_LENGTH) {
       // keep the last MAX_PACKET_LENGTH bytes from the big chunk
@@ -196,7 +196,7 @@ export class PacketFilter extends Transform {
     }
   }
 
-  _transform(chunk: Buffer, encoding: BufferEncoding, callback: TransformCallback) {
+  protected _transform(chunk: Buffer, encoding: BufferEncoding, callback: TransformCallback) {
     // default example transform is an accumulator, to override
     this.buffer = Buffer.concat([this.buffer, this._filter(chunk)]);
     this.push(this.buffer);
@@ -224,7 +224,7 @@ export class SimpleHCPPacketParser extends PacketFilter {
     return Buffer.alloc(MAX_PACKET_LENGTH);
   }
 
-  _resetBuffer() {
+  _resetBuffer = () => {
     return this._resetPacket();
   }
 
@@ -323,7 +323,7 @@ export class BatchHCPPacketParser extends PacketFilter {
     return Buffer.alloc(2 * MAX_PACKET_LENGTH - 1).fill(0);
   }
 
-  _resetBuffer() {
+  _resetBuffer = () => {
     this.buffer.fill(0);
     this.offset = 0;
     return this._resetTestedArray();
