@@ -291,8 +291,8 @@ describe("Real time packet parsing tests", () => {
         chunks.push(chunk);
       });
       // prepend some corrupted packet of same size. it should be discarded after timeout
-      readable.write(Buffer.from("deadbeef", "hex"));
-      readable.put(TEST_PACKET_LIST);
+      const testList = [Buffer.from("deadbeef", "hex"), ...TEST_PACKET_LIST];
+      readable.put(testList);
       readable.end();
       parser.on("finish", () => {
         try {
