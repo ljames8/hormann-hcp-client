@@ -283,10 +283,10 @@ describe("Real time packet parsing tests", () => {
     (parserClass, done) => {
       // Create a mockup stream emitting packets every 10ms by chunks of size 6
       // that's actually quicker than the hardware to save time
-      const readable = new IntervalReadable({ interval: 10, chunkSize: 6 });
+      const readable = new IntervalReadable({ interval: 12, chunkSize: 6 });
       const chunks: HCPPacket[] = [];
       // packetTimeout must be < packet interval
-      const parser = new parserClass({ packetTimeout: 5 });
+      const parser = new parserClass({ packetTimeout: 3 });
       parser.on("data", (chunk) => {
         chunks.push(chunk);
       });
