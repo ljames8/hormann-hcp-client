@@ -196,7 +196,7 @@ export class PacketFilter extends Transform {
     }
   }
 
-  protected _transform(chunk: Buffer, encoding: BufferEncoding, callback: TransformCallback) {
+  _transform(chunk: Buffer, encoding: BufferEncoding, callback: TransformCallback) {
     // default example transform is an accumulator, to override
     this.buffer = Buffer.concat([this.buffer, this._filter(chunk)]);
     this.push(this.buffer);
