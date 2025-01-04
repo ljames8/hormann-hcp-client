@@ -32,8 +32,9 @@ enum COMMAND {
 export enum STATUS_RESPONSE_BYTE0_BITFIELD {
   OPEN = 0,
   CLOSE = 1,
-  TOGGLE_LIGHT = 2,
-  VENTING = 3,
+  REVERSE = 2,
+  TOGGLE_LIGHT = 3,
+  VENTING = 4, // TODO: untested, TBC
 }
 
 enum STATUS_RESPONSE_BYTE1_VALUE {

@@ -17,7 +17,7 @@ describe("garageDoor static methods", () => {
       flags: [1],
     });
     expect(HormannGarageDoorOpener.targetStateToRequest(TargetDoorState.VENTING)).toEqual({
-      flags: [3],
+      flags: [4],
     });
   });
 
