@@ -98,7 +98,7 @@ describe("SerialHCPClient low-level", () => {
       const slaveScan = HCPPacket.fromBuffer(Buffer.from("28d2018022", "hex"));
       const response = client.processSlaveCommand(slaveScan);
       // default slave scan response is [UAP1_TYPE, UAP1_ADDR];
-      expect(response.payload).toEqual([0x14, 0x28]);
+      expect(response.payload).toEqual([0x02, 0x28]);
     });
 
     it.each(["00d20102db", "28d1016b"])("should throw if bad slave scan payload", (pkt) => {
@@ -351,7 +351,7 @@ describe("SerialHCPClient high-level", () => {
     // ensure it responds to slave scan to check everything
     client.on("init", (pkt) => {
       try {
-        expect(pkt.equals(HCPPacket.fromBuffer(Buffer.from("80921428ac", "hex")))).toBe(true);
+        expect(pkt.equals(HCPPacket.fromBuffer(Buffer.from("8092022885", "hex")))).toBe(true);
         expect(arraysEqual(broadcastStatus, [0x0d, 0x02])).toBe(true);
         done();
       } catch (error) {

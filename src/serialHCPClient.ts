@@ -14,8 +14,9 @@ const MIN_RESPONSE_DELAY_MS = 3;
 // so 13/19200 ~= 0.68ms
 const SYNC_BREAK_DURATION_MS = (13 * 1000) / DEFAULT_BAUDRATE;
 
-const UAP1_ADDR = 0x28;
-const UAP1_TYPE = 0x14;
+const UAP1_ADDR = 0x28; // other addresses will do as well
+// using a type from 0x00 to 0x03 seems to make communication errors to be discarded by the master
+const UAP1_TYPE = 0x02;
 
 enum ADDRESS {
   BROADCAST = 0x00,
@@ -307,6 +308,8 @@ export class SerialHCPClient extends EventEmitter implements HCPClient {
           return this.sendQueue.shift()!;
         } else {
           // queue empty, default response
+          // looks like it still works with the UAP1_TYPE=0x02 trick if not answering
+          // or less frequently (up to 1 out of 6 times to keep low command latency)
           return {
             payload: SerialHCPClient.createSlaveStatusPayload([]),
             resolve: () => {},
