@@ -6,9 +6,9 @@
     "declaration": true,
     "strict": true,
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
     "paths": {
       "@src/*": ["./src/*"],
     },
+    "isolatedModules": true
   },
 }
