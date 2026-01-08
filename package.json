@@ -11,7 +11,7 @@
   "scripts": {
     "lint": "eslint --max-warnings=0",
     "clean": "rimraf dist",
-    "build": "npm run clean && tsc",
+    "build": "npm run clean && tsc --project tsconfig.build.json",
     "prepublishOnly": "npm run lint && npm run build",
     "postpublish": "npm run clean",
     "test": "jest",
