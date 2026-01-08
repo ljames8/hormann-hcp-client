@@ -32,7 +32,7 @@ export class IntervalReadable extends Transform {
     }
   }
 
-  put(packets: ArrayBufferLike[]) {
+  put(packets: ArrayBufferView[]) {
     // batch write the list of packets
     packets.map((p) => this.write(p));
   }

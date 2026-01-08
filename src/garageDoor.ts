@@ -13,7 +13,8 @@ import {
 import { PacketFilterParams } from "./parser";
 
 export { MockHCPClient } from "./mockHCPClient";
-export { HCPClient, SerialHCPClient, SerialOptions, PacketFilterParams };
+export { SerialHCPClient };
+export type { HCPClient , SerialOptions, PacketFilterParams };
 
 export enum CurrentDoorState {
   OPEN,
