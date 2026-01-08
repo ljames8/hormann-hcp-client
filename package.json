@@ -1,12 +1,12 @@
 {
   "name": "@ljames8/hormann-hcp-client",
   "displayName": "Hörmann Garage Door Client",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Hormann Communication Protocol v1 garage door serial client",
-  "main": "./dist/src/garageDoor.js",
-  "types": "./dist/src/garageDoor.d.ts",
+  "main": "./dist/garageDoor.js",
+  "types": "./dist/garageDoor.d.ts",
   "files": [
-    "dist/src/"
+    "dist"
   ],
   "scripts": {
     "lint": "eslint --max-warnings=0",
