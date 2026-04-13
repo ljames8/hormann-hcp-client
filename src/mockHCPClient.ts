@@ -109,7 +109,7 @@ export class MockHCPClient extends EventEmitter implements HCPClient {
     currentState: GarageState,
   ): GarageState {
     /** guess logical next state from input command and current state */
-    const nextState = currentState;
+    const nextState = { ...currentState };
     if (flags.includes(STATUS_RESPONSE_BYTE0_BITFIELD.TOGGLE_LIGHT)) {
       nextState.light = !currentState.light;
     }
