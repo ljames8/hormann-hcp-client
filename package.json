@@ -5,7 +5,7 @@
     "url": "git+https://github.com/ljames8/hormann-hcp-client.git"
   },
   "displayName": "Hörmann Garage Door Client",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Hormann Communication Protocol v1 garage door serial client",
   "main": "./dist/garageDoor.js",
   "types": "./dist/garageDoor.d.ts",
