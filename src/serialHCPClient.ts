@@ -115,6 +115,10 @@ export class SerialHCPClient extends EventEmitter implements HCPClient {
 
   private onClose() {
     trace("Serial port closed");
+    for (const item of this.sendQueue) {
+      item.reject?.("Serial port closed");
+    }
+    this.sendQueue = [];
     this.emit("close");
   }
 

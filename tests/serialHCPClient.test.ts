@@ -279,6 +279,16 @@ describe("SerialHCPClient high-level", () => {
     client.open();
   });
 
+  it("should reject pending pushCommand promises when port closes", async () => {
+    MockBinding.createPort(serialPath, { echo: false, record: false });
+    const client = new SerialHCPClient({ path: serialPath });
+
+    await new Promise<void>((resolve) => client.once("open", resolve));
+    const commandPromise = client.pushCommand([STATUS_RESPONSE_BYTE0_BITFIELD.OPEN]);
+    client.close();
+    await expect(commandPromise).rejects.toBe("Serial port closed");
+  });
+
   it.each([0x0d, 0xaa])(
     /**
      * no matter the counter it's gonna be accepted for broadcast messages
