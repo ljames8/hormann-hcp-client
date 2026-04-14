@@ -252,7 +252,6 @@ export class SerialHCPClient extends EventEmitter implements HCPClient {
         break;
       }
       case ADDRESS.SLAVE: {
-        this.nextMessageCounter = nextCounter;
         const response = this.processSlaveCommand(packet);
         // set response counter
         if (response.counter === undefined) response.counter = this.nextMessageCounter;
