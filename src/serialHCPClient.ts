@@ -234,11 +234,10 @@ export class SerialHCPClient extends EventEmitter implements HCPClient {
             `got ${packet.counterNibble} expected ${this.nextMessageCounter}`,
         );
       } else {
-        // error for incorrect counter for other cases
-        throw new Error(
-          `Invalid message counter, got ${packet.counterNibble} ` +
-            `expected ${this.nextMessageCounter}`,
-        );
+        // emit error and sync counter, so we still reply to the master
+        const msg = `got ${packet.counterNibble} expected ${this.nextMessageCounter}`;
+        debug("warning: syncing slave counter, " + msg);
+        this.emit("error", new Error("Invalid message counter, " + msg));
       }
     }
     this.nextMessageCounter = nextCounter;
@@ -255,7 +254,7 @@ export class SerialHCPClient extends EventEmitter implements HCPClient {
         if (response.counter === undefined) response.counter = this.nextMessageCounter;
         if (response.reject === undefined)
           response.reject = (reason) => {
-            throw new Error(reason);
+            this.emit("error", new Error(reason));
           };
         return response;
       }
@@ -291,8 +290,8 @@ export class SerialHCPClient extends EventEmitter implements HCPClient {
           resolve: (p) => {
             this.emit("init", p);
           },
-          reject: () => {
-            throw new Error("could not respond to scan");
+          reject: (reason) => {
+            this.emit("error", new Error("could not respond to scan: " + reason));
           },
         };
       }
@@ -313,8 +312,8 @@ export class SerialHCPClient extends EventEmitter implements HCPClient {
           return {
             payload: SerialHCPClient.createSlaveStatusPayload([]),
             resolve: () => {},
-            reject: () => {
-              throw new Error("could not respond to slave status request");
+            reject: (reason) => {
+              this.emit("error", new Error("could not respond to slave status request: " + reason));
             },
           };
         }

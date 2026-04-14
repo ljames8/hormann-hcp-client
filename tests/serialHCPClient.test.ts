@@ -187,7 +187,12 @@ describe("SerialHCPClient low-level", () => {
         expect(p.equals(pkt)).toBe(true);
         done();
       });
-      expect(response?.reject).toThrow("could not respond to scan");
+      const errorSpy = jest.fn();
+      client.on("error", errorSpy);
+      response?.reject?.("TX error: write failed");
+      expect(errorSpy).toHaveBeenCalledWith(
+        new Error("could not respond to scan: TX error: write failed")
+      );
       response?.resolve?.(pkt);
     });
 
@@ -197,7 +202,12 @@ describe("SerialHCPClient low-level", () => {
 
       const response = client.processMessage(pkt);
       expect(typeof response?.resolve).toBe("function");
-      expect(response?.reject).toThrow("could not respond to slave status request");
+      const errorSpy = jest.fn();
+      client.on("error", errorSpy);
+      response?.reject?.("TX error: write failed");
+      expect(errorSpy).toHaveBeenCalledWith(
+        new Error("could not respond to slave status request: TX error: write failed")
+      );
     });
   });
 
