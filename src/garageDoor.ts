@@ -25,11 +25,16 @@ export enum CurrentDoorState {
   VENTING,
 }
 
-export enum TargetDoorState {
-  OPEN,
-  CLOSED,
-  VENTING = 5,
-}
+export const TargetDoorState = {
+  OPEN: CurrentDoorState.OPEN,
+  CLOSED: CurrentDoorState.CLOSED,
+  VENTING: CurrentDoorState.VENTING,
+} as const;
+
+export type TargetDoorState =
+  | CurrentDoorState.OPEN
+  | CurrentDoorState.CLOSED
+  | CurrentDoorState.VENTING;
 
 export interface GarageState {
   door: CurrentDoorState;
@@ -158,9 +163,9 @@ export class HormannGarageDoorOpener extends GarageDoorOpener {
 
   public setTargetState(newState: TargetDoorState): Promise<void> {
     if (this.targetState === newState) {
-      this.logger(`Target state already ${TargetDoorState[this.targetState]}(${newState})`);
+      this.logger(`Target state already ${CurrentDoorState[this.targetState]}(${newState})`);
       return Promise.resolve();
-    } else if (this.currentState === (newState as unknown as CurrentDoorState)) {
+    } else if (this.currentState === newState) {
       this.logger(`Current state already ${CurrentDoorState[this.currentState]}(${newState})`);
       this.targetState = newState;
       return Promise.resolve();
@@ -169,7 +174,7 @@ export class HormannGarageDoorOpener extends GarageDoorOpener {
       const { flags, emergencyStop } = HormannGarageDoorOpener.targetStateToRequest(newState);
       return this.hcpClient.pushCommand(flags, emergencyStop).then(() => {
         this.targetState = newState;
-        this.logger(`Target state set to ${TargetDoorState[this.targetState]}`);
+        this.logger(`Target state set to ${CurrentDoorState[this.targetState]}`);
       });
     }
   }
