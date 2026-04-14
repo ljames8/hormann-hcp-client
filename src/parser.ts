@@ -65,7 +65,7 @@ export class HCPPacket extends Uint8Array {
     return this[this.length - 1];
   }
 
-  private _validate(): boolean {
+  private _validate(): void {
     /**
      * Ensure consistency of HCP packet length and CRC
      */
@@ -81,8 +81,6 @@ export class HCPPacket extends Uint8Array {
     if (parseLength != this.length) {
       throw new Error(`Invalid total length (got ${parseLength} expected ${this.length})`);
     }
-
-    return true;
   }
 
   public equals(other: Uint8Array | number[]): boolean {
@@ -95,7 +93,8 @@ export class HCPPacket extends Uint8Array {
 
   public isValid(): boolean {
     try {
-      return this._validate();
+      this._validate();
+      return true;
     } catch {
       return false;
     }

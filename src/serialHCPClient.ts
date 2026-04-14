@@ -78,8 +78,8 @@ export interface HCPClient {
    * should emit 'data' event whenever a broadcast status packet is received from the driver
    * should implement a 'pushCommand' to be able to operate the door driver
    */
-  emit(event: "data", data: Uint8Array): void;
-  on(event: "data", listener: (data: Uint8Array) => void): void;
+  emit(event: "data", data: Uint8Array): boolean;
+  on(event: "data", listener: (data: Uint8Array) => void): this;
   pushCommand(flags: STATUS_RESPONSE_BYTE0_BITFIELD[], emergencyStop?: boolean): Promise<HCPPacket>;
 }
 
