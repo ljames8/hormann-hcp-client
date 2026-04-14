@@ -186,8 +186,10 @@ export class SerialHCPClient extends EventEmitter implements HCPClient {
   }
 
   sendBreak(delay: number, callback: () => void): void {
-    /** Use synchronous code to ensure accurate delay */
-    const start = performance.now();
+    /** Busy-wait is intentional: setTimeout is too coarse (~1ms) for the
+     * sub-millisecond LIN sync break duration required (at 19200 baud)
+     */
+     const start = performance.now();
     this.port.set({ brk: true }, (error) => {
       if (error) throw error;
       const stop = performance.now();
