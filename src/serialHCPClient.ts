@@ -78,6 +78,7 @@ export interface HCPClient {
    * should emit 'data' event whenever a broadcast status packet is received from the driver
    * should implement a 'pushCommand' to be able to operate the door driver
    */
+  readonly listenOnly: boolean;
   emit(event: "data", data: Uint8Array): boolean;
   on(event: "data", listener: (data: Uint8Array) => void): this;
   pushCommand(flags: STATUS_RESPONSE_BYTE0_BITFIELD[], emergencyStop?: boolean): Promise<HCPPacket>;
@@ -85,7 +86,7 @@ export interface HCPClient {
 
 export class SerialHCPClient extends EventEmitter implements HCPClient {
   private readonly parser: BatchHCPPacketParser;
-  private readonly listenOnly: boolean;
+  readonly listenOnly: boolean;
   port: SerialPort;
   nextMessageCounter: number;
   sendQueue: ResponsePayload[];

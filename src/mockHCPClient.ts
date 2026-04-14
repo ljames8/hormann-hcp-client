@@ -25,6 +25,7 @@ export class MockHCPClient extends EventEmitter implements HCPClient {
           resolve(HCPPacket.fromData(0x80, 0x01, [0xff, 0xff]));
         }, 30);
       }),
+    public readonly listenOnly = false,
   ) {
     super();
   }
@@ -61,6 +62,9 @@ export class MockHCPClient extends EventEmitter implements HCPClient {
     flags: STATUS_RESPONSE_BYTE0_BITFIELD[],
     emergencyStop: boolean = false,
   ): Promise<HCPPacket> {
+    if (this.listenOnly) {
+      return Promise.reject(new Error("Cannot send commands in listen-only mode"));
+    }
     return this.pushCommandMock(flags, emergencyStop);
   }
 

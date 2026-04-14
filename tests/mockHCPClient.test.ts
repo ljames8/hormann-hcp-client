@@ -188,3 +188,12 @@ describe("MockHCPClient tests", () => {
     });
   });
 });
+
+describe("MockHCPClient listen-only mode", () => {
+  it("should reject pushCommand immediately", async () => {
+    const client = new MockHCPClient(undefined, true);
+    await expect(
+      client.pushCommand([STATUS_RESPONSE_BYTE0_BITFIELD.OPEN])
+    ).rejects.toThrow("Cannot send commands in listen-only mode");
+  });
+});
