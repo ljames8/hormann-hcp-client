@@ -7,7 +7,6 @@ import {
   STATUS_RESPONSE_BYTE0_BITFIELD,
 } from "@src/serialHCPClient";
 import { HCPPacket } from "@src/parser";
-import { afterEach, describe } from "node:test";
 import { IntervalReadable } from "./lib/mockup";
 import { arraysEqual } from "@src/utils";
 

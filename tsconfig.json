@@ -9,6 +9,7 @@
     "paths": {
       "@src/*": ["./src/*"],
     },
-    "isolatedModules": true
+    "isolatedModules": true,
+    "types": ["jest", "node"]
   },
 }
