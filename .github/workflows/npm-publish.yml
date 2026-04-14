@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org/
-      - run: npm install -g npm@latest  # FIXME: trusted publishing not yet available in setup-node@v6 + node 22
+      - run: npm install -g npm@11.8.0  # FIXME: trusted publishing not yet available in setup-node@v6 + node 22
       - run: npm ci
       - run: npm test
       - run: npm publish
