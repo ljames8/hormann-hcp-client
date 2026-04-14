@@ -135,11 +135,25 @@ describe("SerialHCPClient low-level", () => {
       expect(response).toBe(null);
     });
 
-    it("should throw an error when slave message counter is not expected", () => {
+    it("should emit an error when slave message counter is not expected", () => {
       const pkt = HCPPacket.fromBuffer(Buffer.from("28d1208c", "hex"));
-      expect(() => {
-        client.processMessage(pkt);
-      }).toThrow("Invalid message counter, got 13 expected 1");
+      const errorSpy = jest.fn();
+      client.on("error", errorSpy);
+      client.processMessage(pkt);
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.objectContaining(
+          { message: expect.stringContaining("Invalid message counter, got 13 expected 14") }
+        ),
+      );
+    });
+
+    it("should throw when slave counter mismatch and no error listener is attached", () => {
+      // Node.js EventEmitter default: emit("error") with no listener throws
+      const pkt = HCPPacket.fromBuffer(Buffer.from("28d1208c", "hex"));
+      client.removeAllListeners("error");
+      expect(() => client.processMessage(pkt)).toThrow(
+        "Unhandled error. (Error: Invalid message counter, got 13 expected 14"
+      );
     });
 
     it("should handle correctly slave message counters", () => {
