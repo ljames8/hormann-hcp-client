@@ -205,9 +205,14 @@ export function createHormannGarageDoorOpener(
   name: string | undefined,
   { path, ...rest }: SerialOptions,
   { packetTimeout = 50, filterBreaks = true, filterMaxLength = true }: PacketFilterParams = {},
+  listenOnly = false,
 ): HormannGarageDoorOpener {
   return new HormannGarageDoorOpener(
     name,
-    new SerialHCPClient({ path, ...rest }, { packetTimeout, filterBreaks, filterMaxLength }),
+    new SerialHCPClient(
+      { path, ...rest },
+      { packetTimeout, filterBreaks, filterMaxLength },
+      listenOnly,
+    ),
   );
 }

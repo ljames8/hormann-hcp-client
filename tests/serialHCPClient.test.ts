@@ -393,3 +393,59 @@ describe("SerialHCPClient high-level", () => {
     });
   });
 });
+
+describe("SerialHCPClient listen-only mode", () => {
+  const serialPath = "/dev/test";
+
+  afterEach(() => {
+    MockBinding.reset();
+  });
+
+  it("should still emit 'data' for broadcast packets", (done) => {
+    MockBinding.createPort(serialPath, { echo: false, record: false });
+    const client = new SerialHCPClient({ path: serialPath }, {}, true);
+    client.once("open", () => {
+      client.nextMessageCounter = 0x0d;
+      (client.port.port as unknown as MockPortBinding).emitData(Buffer.from("00d20e0218", "hex"));
+    });
+    client.on("data", (payload: Uint8Array) => {
+      expect(payload[0]).toBe(0x0e);
+      done();
+    });
+  });
+
+  it("should return null (no response) for slave scan packets", () => {
+    MockBinding.createPort(serialPath, { echo: false, record: false });
+    const client = new SerialHCPClient({ path: serialPath }, {}, true);
+    const slaveScan = HCPPacket.fromBuffer(Buffer.from("28d2018022", "hex"));
+    client.nextMessageCounter = 0x0d;
+    const response = client.processMessage(slaveScan);
+    expect(response).toBeNull();
+  });
+
+  it("should return null (no response) for slave status request packets", () => {
+    MockBinding.createPort(serialPath, { echo: false, record: false });
+    const client = new SerialHCPClient({ path: serialPath }, {}, true);
+    const slaveStatus = HCPPacket.fromBuffer(Buffer.from("28d1208c", "hex"));
+    client.nextMessageCounter = 0x0d;
+    const response = client.processMessage(slaveStatus);
+    expect(response).toBeNull();
+  });
+
+  it("should reject pushCommand immediately", async () => {
+    MockBinding.createPort(serialPath, { echo: false, record: false });
+    const client = new SerialHCPClient({ path: serialPath }, {}, true);
+    await expect(
+      client.pushCommand([STATUS_RESPONSE_BYTE0_BITFIELD.OPEN])
+    ).rejects.toThrow("Cannot send commands in listen-only mode");
+  });
+
+  it("should still increment the message counter when a slave packet is skipped", () => {
+    MockBinding.createPort(serialPath, { echo: false, record: false });
+    const client = new SerialHCPClient({ path: serialPath }, {}, true);
+    const slaveStatus = HCPPacket.fromBuffer(Buffer.from("28d1208c", "hex"));
+    client.nextMessageCounter = 0x0d;
+    client.processMessage(slaveStatus);
+    expect(client.nextMessageCounter).toBe(0x0e);
+  });
+});

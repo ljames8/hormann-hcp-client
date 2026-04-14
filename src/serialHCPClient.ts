@@ -85,6 +85,7 @@ export interface HCPClient {
 
 export class SerialHCPClient extends EventEmitter implements HCPClient {
   private readonly parser: BatchHCPPacketParser;
+  private readonly listenOnly: boolean;
   port: SerialPort;
   nextMessageCounter: number;
   sendQueue: ResponsePayload[];
@@ -92,6 +93,7 @@ export class SerialHCPClient extends EventEmitter implements HCPClient {
   constructor(
     { path, baudRate = DEFAULT_BAUDRATE, ...rest }: SerialOptions,
     parserOptions?: PacketFilterParams,
+    listenOnly = false,
   ) {
     super();
 
@@ -105,6 +107,7 @@ export class SerialHCPClient extends EventEmitter implements HCPClient {
 
     this.nextMessageCounter = 1;
     this.sendQueue = [];
+    this.listenOnly = listenOnly;
     this.port.pipe(this.parser);
   }
 
@@ -254,6 +257,10 @@ export class SerialHCPClient extends EventEmitter implements HCPClient {
         break;
       }
       case ADDRESS.SLAVE: {
+        if (this.listenOnly) {
+          debug("listen-only: ignoring slave packet %h", packet);
+          break;
+        }
         const response = this.processSlaveCommand(packet);
         // set response counter
         response.counter ??= this.nextMessageCounter;
@@ -337,6 +344,9 @@ export class SerialHCPClient extends EventEmitter implements HCPClient {
      * you have to wait for the next slave status request from the master.
      * So push the command and await the promise to be resolved to confirm it was sent
      */
+    if (this.listenOnly) {
+      return Promise.reject(new Error("Cannot send commands in listen-only mode"));
+    }
     const payload = SerialHCPClient.createSlaveStatusPayload(flags, emergencyStop);
     return new Promise<HCPPacket>((resolve, reject) => {
       this.sendQueue.push({ payload, resolve, reject });
