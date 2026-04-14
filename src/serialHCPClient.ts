@@ -1,4 +1,4 @@
-import { EventEmitter } from "events";
+import { EventEmitter } from "node:events";
 import { SerialPort, SerialPortOpenOptions } from "serialport";
 import Debug from "debug";
 import { hex } from "./utils";
@@ -84,7 +84,7 @@ export interface HCPClient {
 }
 
 export class SerialHCPClient extends EventEmitter implements HCPClient {
-  private parser: BatchHCPPacketParser;
+  private readonly parser: BatchHCPPacketParser;
   port: SerialPort;
   nextMessageCounter: number;
   sendQueue: ResponsePayload[];
@@ -256,9 +256,8 @@ export class SerialHCPClient extends EventEmitter implements HCPClient {
       case ADDRESS.SLAVE: {
         const response = this.processSlaveCommand(packet);
         // set response counter
-        if (response.counter === undefined) response.counter = this.nextMessageCounter;
-        if (response.reject === undefined)
-          response.reject = (reason) => {
+        response.counter ??= this.nextMessageCounter;
+        response.reject ??= (reason) => {
             this.emit("error", new Error(reason));
           };
         return response;

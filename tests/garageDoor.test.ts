@@ -46,16 +46,16 @@ describe("garageDoor static methods", () => {
 
     // status that translate to errors
     expect(HormannGarageDoorOpener.broadcastToCurrentState(Uint8Array.from([0x00, 0x00]))).toEqual(
-      Error("Unknown status"),
+      new Error("Unknown status"),
     );
     expect(HormannGarageDoorOpener.broadcastToCurrentState(Uint8Array.from([0x24, 0x00]))).toEqual(
-      Error("Unknown status"),
+      new Error("Unknown status"),
     );
     expect(HormannGarageDoorOpener.broadcastToCurrentState(Uint8Array.from([0x12, 0x00]))).toEqual(
-      Error("Error active"),
+      new Error("Error active"),
     );
     expect(HormannGarageDoorOpener.broadcastToCurrentState(Uint8Array.from([0x1c, 0xff]))).toEqual(
-      Error("Error active"),
+      new Error("Error active"),
     );
 
     // door moving
@@ -135,7 +135,7 @@ describe("garageDoor getter methods", () => {
     // set status to arbitrary not null to ensure a change on data
     garage.broadcastStatus[0] = 0xff;
     garage.on("error", (error) => {
-      expect(error).toEqual(Error("Unknown status"));
+      expect(error).toEqual(new Error("Unknown status"));
       done();
     });
     garage.hcpClient.emit("data", Uint8Array.from([0x00, 0x00]));

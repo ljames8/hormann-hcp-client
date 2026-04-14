@@ -1,16 +1,16 @@
-import { EventEmitter } from "events";
+import { EventEmitter } from "node:events";
 
 import Debug, { Debugger } from "debug";
 
 import {
-  HCPClient,
+  type HCPClient,
   SerialHCPClient,
-  SerialOptions,
+  type SerialOptions,
   STATUS_RESPONSE_BYTE0_BITFIELD,
   BROADCAST_STATUS_BYTE0_BITFIELD,
   DIRECTION,
 } from "./serialHCPClient";
-import { PacketFilterParams } from "./parser";
+import type { PacketFilterParams } from "./parser";
 
 export { MockHCPClient } from "./mockHCPClient";
 export { SerialHCPClient };

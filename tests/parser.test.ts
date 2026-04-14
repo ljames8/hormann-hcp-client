@@ -52,11 +52,11 @@ describe("HCPPacket base", () => {
   });
 
   it("should build a valid packet from data", () => {
-    const p = HCPPacket.fromData(...[0x00, 5, [0x00, 0x01]]);
+    const p = HCPPacket.fromData(0x00, 5, [0x00, 0x01]);
     expect(p.isValid()).toBe(true);
     expect(p.hex()).toBe("00520001cc");
     // supplying crc from data should not be that useful but supported
-    expect(HCPPacket.fromData(...[0x00, 5, [0x00, 0x01], 0xcc]).isValid()).toBe(true);
+    expect(HCPPacket.fromData(0x00, 5, [0x00, 0x01], 0xcc).isValid()).toBe(true);
   });
 
   it("should be formatted as hex string", () => {
@@ -93,21 +93,21 @@ describe("HCPPacket base", () => {
 
   it("should throw errors if data is not valid", () => {
     expect(() => {
-      HCPPacket.fromData(...[300, 5, [0x00, 0x01]]);
+      HCPPacket.fromData(300, 5, [0x00, 0x01]);
     }).toThrow("address byte cannot exceed 255");
     expect(() => {
-      HCPPacket.fromData(...[0x00, 16, [0x00, 0x01]]);
+      HCPPacket.fromData(0x00, 16, [0x00, 0x01]);
     }).toThrow("counter nibble cannot exceed 15");
     expect(() => {
-      HCPPacket.fromData(...[0x00, 1, [0x00], 257]);
+      HCPPacket.fromData(0x00, 1, [0x00], 257);
     }).toThrow("crc cannot exceed 255");
     expect(() => {
-      HCPPacket.fromData(...[0x00, 1, new Uint8Array(16)]);
+      HCPPacket.fromData(0x00, 1, new Uint8Array(16));
     }).toThrow("HCPPacket cannot be longer than 18 bytes");
   });
 
   it("should not throw any error if not validating crc", () => {
-    const p = HCPPacket.fromData(...[0x00, 14, [0x00], 0x00], false);
+    const p = HCPPacket.fromData(0x00, 14, [0x00], 0x00, false);
     expect(p.isValid()).toBe(false);
   });
 });

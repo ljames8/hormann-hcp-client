@@ -1,4 +1,4 @@
-import { Transform, TransformCallback } from "stream";
+import { Transform, TransformCallback } from "node:stream";
 import Debug from "debug";
 import { arraysEqual, hex, computeCRC8 } from "./utils";
 
@@ -88,7 +88,7 @@ export class HCPPacket extends Uint8Array {
   }
 
   public computeCRC(): number {
-    return computeCRC8(this.subarray(0, this.length - 1));
+    return computeCRC8(this.subarray(0, -1));
   }
 
   public isValid(): boolean {
@@ -109,7 +109,7 @@ export class HCPPacket extends Uint8Array {
     counterNibble: number,
     payload: number[] | Buffer | Uint8Array,
     crc?: number,
-    validate: boolean = crc === undefined ? false : true,
+    validate: boolean = crc !== undefined,
   ): HCPPacket {
     let tmpCRC: number = -1;
     // create packet buffer from its data
@@ -124,7 +124,7 @@ export class HCPPacket extends Uint8Array {
     const buffer = [addressByte, lengthByte, ...payload, tmpCRC];
     // compute crc if undefined
     if (crc === undefined) {
-      buffer[buffer.length - 1] = computeCRC8(buffer.slice(0, buffer.length - 1));
+      buffer[buffer.length - 1] = computeCRC8(buffer.slice(0, -1));
     }
 
     return HCPPacket.fromBuffer(buffer, validate);
