@@ -22,12 +22,12 @@ describe("garageDoor static methods", () => {
   });
 
   it("should convert broadcast status to current door states", () => {
-    expect(HormannGarageDoorOpener.broadcastToCurrentState(Uint8Array.from([0x01, 0xff]))).toEqual({
-      door: CurrentDoorState.CLOSED,
+    expect(HormannGarageDoorOpener.broadcastToCurrentState(Uint8Array.from([0x01, 0x00]))).toEqual({
+      door: CurrentDoorState.OPEN,
       light: false,
     });
-    expect(HormannGarageDoorOpener.broadcastToCurrentState(Uint8Array.from([0x02, 0x00]))).toEqual({
-      door: CurrentDoorState.OPEN,
+    expect(HormannGarageDoorOpener.broadcastToCurrentState(Uint8Array.from([0x02, 0xff]))).toEqual({
+      door: CurrentDoorState.CLOSED,
       light: false,
     });
     expect(HormannGarageDoorOpener.broadcastToCurrentState(Uint8Array.from([0x80, 0x00]))).toEqual({
@@ -98,15 +98,15 @@ describe("garageDoor getter methods", () => {
     garage.on("update_door", doorHandler);
 
     // door closed + light on/off (twice)
-    garage.hcpClient.emit("data", Uint8Array.from([0x01 + 0x08, 0xff]));
-    garage.hcpClient.emit("data", Uint8Array.from([0x01, 0xff]));
+    garage.hcpClient.emit("data", Uint8Array.from([0x02 + 0x08, 0xff]));
+    garage.hcpClient.emit("data", Uint8Array.from([0x02, 0xff]));
     let doorState = garage.getCurrentState();
     expect(doorHandler).toHaveBeenCalledTimes(1);
     expect(doorHandler).toHaveBeenCalledWith(doorState);
     expect(doorState).toBe(1);
 
     // door open
-    garage.hcpClient.emit("data", Uint8Array.from([0x02, 0xff]));
+    garage.hcpClient.emit("data", Uint8Array.from([0x01, 0xff]));
     doorState = garage.getCurrentState();
     expect(doorHandler).toHaveBeenCalledTimes(2);
     expect(doorHandler).toHaveBeenLastCalledWith(doorState);

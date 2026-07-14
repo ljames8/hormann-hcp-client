@@ -42,8 +42,8 @@ describe("Broadcast messages unpacking", () => {
     // test with an actual status payload
     const bitfield = SerialHCPClient.extractBitfield(status[0]);
     expect(bitfield).toEqual([false, true, true, true, false, false, false, false]);
-    expect(bitfield[BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_CLOSED]).toBe(false);
-    expect(bitfield[BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_OPENED]).toBe(true);
+    expect(bitfield[BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_OPENED]).toBe(false);
+    expect(bitfield[BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_CLOSED]).toBe(true);
     expect(bitfield[BROADCAST_STATUS_BYTE0_BITFIELD.DOOR_MOVING]).toBe(false);
     expect(bitfield[BROADCAST_STATUS_BYTE0_BITFIELD.LIGHT_RELAY_ON]).toBe(true);
     expect(bitfield[BROADCAST_STATUS_BYTE0_BITFIELD.ERROR_ACTIVE]).toBe(false);

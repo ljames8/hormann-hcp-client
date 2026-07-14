@@ -4,8 +4,8 @@ import { STATUS_RESPONSE_BYTE0_BITFIELD } from "@src/serialHCPClient";
 
 describe("MockHCPClient tests", () => {
   it("should mock the right broadcast status byte from given door states", () => {
-    expect(MockHCPClient.doorStateToBroadcastStatusByte(CurrentDoorState.CLOSED)).toEqual(0x01);
-    expect(MockHCPClient.doorStateToBroadcastStatusByte(CurrentDoorState.OPEN)).toEqual(0x02);
+    expect(MockHCPClient.doorStateToBroadcastStatusByte(CurrentDoorState.OPEN)).toEqual(0x01);
+    expect(MockHCPClient.doorStateToBroadcastStatusByte(CurrentDoorState.CLOSED)).toEqual(0x02);
     expect(MockHCPClient.doorStateToBroadcastStatusByte(CurrentDoorState.VENTING)).toEqual(0x80);
     expect(MockHCPClient.doorStateToBroadcastStatusByte(CurrentDoorState.CLOSING)).toEqual(0x60);
     expect(MockHCPClient.doorStateToBroadcastStatusByte(CurrentDoorState.OPENING)).toEqual(0x40);
@@ -19,10 +19,10 @@ describe("MockHCPClient tests", () => {
   it("should mck the right broadcast statuses from garage door states", () => {
     expect(
       MockHCPClient.garageStateToBroadcastStatus({ door: CurrentDoorState.CLOSED, light: false }),
-    ).toEqual(Uint8Array.from([0x01, 0xff]));
+    ).toEqual(Uint8Array.from([0x02, 0xff]));
     expect(
       MockHCPClient.garageStateToBroadcastStatus({ door: CurrentDoorState.CLOSED, light: true }),
-    ).toEqual(Uint8Array.from([0x09, 0xff]));
+    ).toEqual(Uint8Array.from([0x0a, 0xff]));
     expect(
       MockHCPClient.garageStateToBroadcastStatus({ door: CurrentDoorState.VENTING, light: true }),
     ).toEqual(Uint8Array.from([0x88, 0xff]));
